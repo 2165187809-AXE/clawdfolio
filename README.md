@@ -5,6 +5,8 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Claude Code](https://img.shields.io/badge/Claude%20Code-Skill-blueviolet)](https://github.com/anthropics/claude-code)
 
+English | [中文](README_CN.md)
+
 > **Real-time portfolio monitoring and risk analytics for professional investors.**
 >
 > A Claude Code Skill that aggregates portfolios from multiple brokers, calculates institutional-grade risk metrics, and generates intelligent trading alerts.
