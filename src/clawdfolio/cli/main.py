@@ -12,15 +12,17 @@ if TYPE_CHECKING:
 
 def create_parser() -> argparse.ArgumentParser:
     """Create the argument parser."""
+    from ..finance.workflows import category_choices
+
     parser = argparse.ArgumentParser(
         prog="clawdfolio",
-        description="AI portfolio monitoring for Claude Code with options and production-grade data reliability",
+        description="AI portfolio monitoring for Claude Code with v2 finance workflows and production-grade reliability",
     )
 
     parser.add_argument(
         "--version",
         action="version",
-        version="%(prog)s 1.1.0",
+        version="%(prog)s 2.0.0",
     )
 
     parser.add_argument(
@@ -180,6 +182,58 @@ def create_parser() -> argparse.ArgumentParser:
         "--strict",
         action="store_true",
         help="Exit with code 1 if no target is triggered",
+    )
+
+    # Finance command
+    finance_parser = subparsers.add_parser(
+        "finance",
+        help="Run migrated local finance workflows (v2)",
+    )
+    finance_subparsers = finance_parser.add_subparsers(
+        dest="finance_command",
+        help="Finance workflow actions",
+    )
+
+    finance_list_parser = finance_subparsers.add_parser(
+        "list",
+        help="List available finance workflows",
+    )
+    finance_list_parser.add_argument(
+        "--category",
+        choices=category_choices(),
+        help="Filter by workflow category",
+    )
+
+    finance_init_parser = finance_subparsers.add_parser(
+        "init",
+        help="Initialize local finance workspace",
+    )
+    finance_init_parser.add_argument(
+        "--workspace",
+        help="Workspace path (default: ~/.clawdfolio/finance)",
+    )
+    finance_init_parser.add_argument(
+        "--sync",
+        action="store_true",
+        help="Force sync all bundled workflow scripts into workspace",
+    )
+
+    finance_run_parser = finance_subparsers.add_parser(
+        "run",
+        help="Run one finance workflow by id",
+    )
+    finance_run_parser.add_argument(
+        "workflow",
+        help="Workflow id, e.g. portfolio_daily_brief_tg",
+    )
+    finance_run_parser.add_argument(
+        "--workspace",
+        help="Workspace path (default: ~/.clawdfolio/finance)",
+    )
+    finance_run_parser.add_argument(
+        "--sync",
+        action="store_true",
+        help="Force sync scripts before run",
     )
 
     return parser
@@ -525,10 +579,104 @@ def cmd_options(args: Namespace) -> int:
     return 1
 
 
+def cmd_finance(args: Namespace) -> int:
+    """Handle finance workflow orchestration command."""
+    from ..finance.runner import default_workspace_path, initialize_workspace, run_workflow
+    from ..finance.workflows import CATEGORY_LABELS, grouped_workflows
+    from ..output.json import to_json
+
+    if args.finance_command is None:
+        args.finance_command = "list"
+
+    if args.finance_command == "list":
+        groups = grouped_workflows(category=getattr(args, "category", None))
+        if args.output == "json":
+            list_payload = {
+                "groups": [
+                    {
+                        "category": cat,
+                        "label": label,
+                        "workflows": [
+                            {
+                                "id": wf.workflow_id,
+                                "name": wf.name,
+                                "script": wf.script,
+                                "description": wf.description,
+                            }
+                            for wf in items
+                        ],
+                    }
+                    for cat, label, items in groups
+                ],
+                "workspace_default": str(default_workspace_path()),
+            }
+            print(to_json(list_payload))
+            return 0
+
+        print("Finance workflows (v2):")
+        for cat, label, items in groups:
+            print(f"\n[{label}] ({cat})")
+            for wf in items:
+                print(f"- {wf.workflow_id:30} {wf.name} [{wf.script}]")
+                print(f"  {wf.description}")
+        return 0
+
+    if args.finance_command == "init":
+        result = initialize_workspace(
+            workspace=getattr(args, "workspace", None),
+            sync=bool(getattr(args, "sync", False)),
+        )
+        if args.output == "json":
+            init_payload = {
+                "workspace": str(result.workspace),
+                "scripts_synced": result.scripts_synced,
+                "archive_synced": result.archive_synced,
+                "config_created": result.config_created,
+                "data_created": result.data_created,
+                "categories": CATEGORY_LABELS,
+            }
+            print(to_json(init_payload))
+            return 0
+
+        print(f"Finance workspace: {result.workspace}")
+        print(f"Scripts synced: {result.scripts_synced}")
+        print(f"Archive scripts synced: {result.archive_synced}")
+        print(f"Config created: {'yes' if result.config_created else 'no'}")
+        print(f"Data dir created: {'yes' if result.data_created else 'no'}")
+        return 0
+
+    if args.finance_command == "run":
+        script_args = list(getattr(args, "script_args", []) or [])
+        if script_args and script_args[0] == "--":
+            script_args = script_args[1:]
+        try:
+            return run_workflow(
+                args.workflow,
+                workspace=getattr(args, "workspace", None),
+                sync=bool(getattr(args, "sync", False)),
+                script_args=script_args,
+            )
+        except ValueError as exc:
+            print(f"Error: {exc}", file=sys.stderr)
+            return 1
+        except FileNotFoundError as exc:
+            print(f"Error: {exc}", file=sys.stderr)
+            return 1
+
+    print(f"Unknown finance subcommand: {args.finance_command}", file=sys.stderr)
+    return 1
+
+
 def main(argv: list[str] | None = None) -> int:
     """Main entry point."""
     parser = create_parser()
-    args = parser.parse_args(argv)
+    args, extras = parser.parse_known_args(argv)
+
+    if extras:
+        if args.command == "finance" and args.finance_command == "run":
+            args.script_args = extras
+        else:
+            parser.error(f"unrecognized arguments: {' '.join(extras)}")
 
     if args.command is None:
         # Default to summary
@@ -543,6 +691,7 @@ def main(argv: list[str] | None = None) -> int:
         "earnings": cmd_earnings,
         "dca": cmd_dca,
         "options": cmd_options,
+        "finance": cmd_finance,
     }
 
     handler = commands.get(args.command)

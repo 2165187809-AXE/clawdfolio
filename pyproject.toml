@@ -4,8 +4,8 @@ build-backend = "hatchling.build"
 
 [project]
 name = "clawdfolio"
-version = "1.1.0"
-description = "AI-powered portfolio monitoring for Claude Code with production-grade broker/market data reliability, option analytics, and risk intelligence"
+version = "2.0.0"
+description = "AI-powered portfolio monitoring for Claude Code with v2 full finance workflows, option analytics, and production-grade broker/market reliability"
 readme = "README.md"
 license = "MIT"
 requires-python = ">=3.10"
@@ -86,6 +86,7 @@ packages = ["src/clawdfolio"]
 target-version = "py310"
 line-length = 100
 src = ["src", "tests"]
+exclude = ["src/clawdfolio/legacy_finance"]
 
 [tool.ruff.lint]
 select = [
@@ -112,6 +113,7 @@ warn_unused_ignores = false
 disallow_untyped_defs = false
 ignore_missing_imports = true
 check_untyped_defs = false
+exclude = "(^src/clawdfolio/legacy_finance/)"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

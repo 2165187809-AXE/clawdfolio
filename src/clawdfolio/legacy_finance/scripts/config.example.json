@@ -1,0 +1,37 @@
+{
+  "dca": {
+    "daily_budget": 2000,
+    "max_budget": 5000,
+    "allocation": {"QQQ": 0.7, "VOO": 0.3}
+  },
+  "alerts": {
+    "pnl_trigger": 2000,
+    "pnl_step": 500,
+    "rsi_high": 80,
+    "rsi_low": 20,
+    "rsi_step": 3,
+    "single_stock_threshold_top10": 0.07,
+    "single_stock_threshold_other": 0.12,
+    "move_step": 0.02
+  },
+  "tqqq_macro": {
+    "qqq_52w_high": 636.60,
+    "l1_trigger_pct": -0.10,
+    "l1_amount_each": 2301.86,
+    "l1_min_gap_seconds": 172800
+  },
+  "option_buyback": {
+    "symbol": "TQQQ",
+    "targets": [
+      {"name": "target1", "strike": 60, "expiry": "2026-06-18", "type": "C", "trigger_price": 1.60, "qty": 2, "reset_pct": 0.20},
+      {"name": "target2", "strike": 60, "expiry": "2026-06-18", "type": "C", "trigger_price": 0.80, "qty": 1, "reset_pct": 0.20}
+    ]
+  },
+  "format": {
+    "max_cols": 88,
+    "max_lines": 22,
+    "money_decimals": 0,
+    "price_decimals": 2,
+    "pct_decimals": 1
+  }
+}

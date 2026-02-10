@@ -35,17 +35,17 @@ English | [中文](README_CN.md)
 - **Earnings Calendar** - Track upcoming earnings for holdings
 - **DCA Analysis** - Dollar-cost averaging signals
 - **Options Toolkit** - Option quote/Greeks, option chain snapshot, buyback trigger monitor
+- **Finance Workflow Suite (v2)** - 20 migrated production workflows from local `~/clawd/scripts`, categorized and runnable via `clawdfolio finance`
 
 ---
 
-## What's New in v1.1.0
+## What's New in v2.0.0
 
-- **Finance reliability sync** - Ported proven reliability improvements from real production workflows
-- **More realistic RSI** - RSI now uses **Wilder EMA smoothing** for steadier signal quality
-- **Longport quote refresh fix** - Corrected symbol wiring in `LongportBroker.get_positions()`
-- **Market data hardening** - Better yfinance history normalization (single ticker + MultiIndex) and `prev_close` fallback
-- **Options migration** - Added option quote/Greeks, option chain snapshot, and config-driven buyback trigger monitor
-- **CI stability** - Full lint/type/test pipeline now passes consistently on Python 3.10/3.11/3.12
+- **Full finance migration** - Migrated all active local finance workflows (reports, briefs, alerts, market intel, snapshots, DCA, security) from `~/clawd/scripts`
+- **Structured orchestration** - Added `clawdfolio finance` command group to list, initialize, and run workflows by id
+- **Organized layout** - Added categorized workflow catalog and bundled `legacy_finance` package content, with archived historical scripts retained
+- **Runtime safety** - Introduced mutable workspace bootstrap (`~/.clawdfolio/finance`) so legacy workflows keep writable config/state without polluting repo root
+- **Prior reliability gains retained** - Wilder RSI smoothing, Longport symbol fix, yfinance hardening, options quote/chain/buyback monitor remain included
 
 ---
 
@@ -87,7 +87,21 @@ clawdfolio options expiries TQQQ
 clawdfolio options quote TQQQ --expiry 2026-06-18 --strike 60 --type C
 clawdfolio options chain TQQQ --expiry 2026-06-18 --side both --limit 10
 clawdfolio options buyback      # Trigger check from config option_buyback.targets
+clawdfolio finance list         # List all migrated finance workflows
+clawdfolio finance init         # Bootstrap ~/.clawdfolio/finance workspace
+clawdfolio finance run portfolio_daily_brief_tg_clean
 ```
+
+### Finance Workflows (v2)
+
+`clawdfolio finance list` groups workflows by:
+- Portfolio Reports
+- Briefing Cards
+- Alerts and Monitors
+- Market Intelligence
+- Broker Snapshots
+- Strategy
+- Security
 
 ---
 

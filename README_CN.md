@@ -35,17 +35,17 @@
 - **财报日历** - 追踪持仓股票财报日期
 - **定投分析** - DCA 信号与绩效追踪
 - **期权工具集** - 期权报价/Greeks、期权链快照、回补触发监控
+- **金融工作流套件 (v2)** - 从本地 `~/clawd/scripts` 全量迁移 20 个实盘脚本，并可通过 `clawdfolio finance` 分类运行
 
 ---
 
-## v1.1.0 最新优化
+## v2.0.0 最新优化
 
-- **金融可靠性同步** - 将实盘工作流中验证过的可靠性改进同步到 `clawdfolio`
-- **RSI 更贴近实盘** - RSI 计算切换为 **Wilder EMA 平滑**
-- **Longport 报价刷新修复** - 修复 `LongportBroker.get_positions()` 的 symbol 传递问题
-- **行情数据增强** - yfinance 单票/MultiIndex 历史数据标准化，并补齐 `prev_close` 回退逻辑
-- **期权能力迁移** - 新增期权报价/Greeks、期权链快照、配置驱动的回补触发监控
-- **CI 稳定性提升** - Python 3.10/3.11/3.12 的 lint/type/test 全链路稳定通过
+- **本地金融能力全量迁移** - 将 `~/clawd/scripts` 的全部在用金融脚本迁移进 `clawdfolio`（报告、简报、监控、行情、快照、DCA、安全）
+- **结构化编排** - 新增 `clawdfolio finance` 命令组，支持按分类列出、初始化、按 id 执行工作流
+- **目录重构** - 新增 `legacy_finance` 打包目录，并保留历史归档脚本以便追溯和回滚
+- **运行隔离** - 增加可写工作区 `~/.clawdfolio/finance`，兼容 legacy 脚本的配置与状态文件写入
+- **既有可靠性修复保留** - Wilder RSI、Longport symbol 修复、yfinance 增强、期权报价/期权链/回补监控全部保留
 
 ---
 
@@ -87,7 +87,21 @@ clawdfolio options expiries TQQQ
 clawdfolio options quote TQQQ --expiry 2026-06-18 --strike 60 --type C
 clawdfolio options chain TQQQ --expiry 2026-06-18 --side both --limit 10
 clawdfolio options buyback      # 按配置检查回补触发
+clawdfolio finance list         # 查看全部迁移后的金融工作流
+clawdfolio finance init         # 初始化 ~/.clawdfolio/finance 工作区
+clawdfolio finance run portfolio_daily_brief_tg_clean
 ```
+
+### 金融工作流 (v2)
+
+`clawdfolio finance list` 会按以下分组展示工作流：
+- Portfolio Reports
+- Briefing Cards
+- Alerts and Monitors
+- Market Intelligence
+- Broker Snapshots
+- Strategy
+- Security
 
 ---
 
