@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "clawdfolio"
 version = "1.0.2"
-description = "AI-powered portfolio monitoring for Claude Code - Multi-broker support with professional risk analytics"
+description = "AI-powered portfolio monitoring for Claude Code with production-grade broker/market data reliability and professional risk analytics"
 readme = "README.md"
 license = "MIT"
 requires-python = ">=3.10"

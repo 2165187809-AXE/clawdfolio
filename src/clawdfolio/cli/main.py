@@ -14,7 +14,7 @@ def create_parser() -> argparse.ArgumentParser:
     """Create the argument parser."""
     parser = argparse.ArgumentParser(
         prog="clawdfolio",
-        description="AI-powered portfolio monitoring for Claude Code",
+        description="AI portfolio monitoring for Claude Code with production-grade data reliability",
     )
 
     parser.add_argument(

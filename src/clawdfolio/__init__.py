@@ -1,4 +1,4 @@
-"""Clawdfolio - AI-powered portfolio monitoring for Claude Code."""
+"""Clawdfolio - AI portfolio monitoring with production-grade data reliability."""
 
 __version__ = "1.0.2"
 __author__ = "YICHENG YANG"

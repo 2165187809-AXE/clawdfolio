@@ -9,7 +9,7 @@ English | [中文](README_CN.md)
 
 > **AI-powered portfolio monitoring for the Claude Code ecosystem.**
 >
-> The ultimate Claude Code Skill for investors - aggregates portfolios from multiple brokers, calculates institutional-grade risk metrics, and generates intelligent trading alerts.
+> The ultimate Claude Code Skill for investors - aggregates portfolios from multiple brokers, calculates institutional-grade risk metrics, and generates intelligent trading alerts with production-grade data reliability.
 
 ---
 
@@ -34,6 +34,16 @@ English | [中文](README_CN.md)
 - **Smart Alerts** - Price movements, RSI extremes, P&L thresholds
 - **Earnings Calendar** - Track upcoming earnings for holdings
 - **DCA Analysis** - Dollar-cost averaging signals
+
+---
+
+## What's New in v1.0.2
+
+- **Finance reliability sync** - Ported proven reliability improvements from real production workflows
+- **More realistic RSI** - RSI now uses **Wilder EMA smoothing** for steadier signal quality
+- **Longport quote refresh fix** - Corrected symbol wiring in `LongportBroker.get_positions()`
+- **Market data hardening** - Better yfinance history normalization (single ticker + MultiIndex) and `prev_close` fallback
+- **CI stability** - Full lint/type/test pipeline now passes consistently on Python 3.10/3.11/3.12
 
 ---
 
