@@ -42,24 +42,18 @@ def calculate_rsi(
     Returns:
         RSI value (0-100) or None if insufficient data
     """
-    prices_arr = np.array(prices)
-    if len(prices_arr) < period + 1:
+    if period <= 0:
         return None
 
-    deltas = np.diff(prices_arr)
-    gains = np.where(deltas > 0, deltas, 0)
-    losses = np.where(deltas < 0, -deltas, 0)
+    prices_series = pd.Series(np.array(prices), dtype="float64").dropna()
+    if len(prices_series) < period + 1:
+        return None
 
-    avg_gain = np.mean(gains[-period:])
-    avg_loss = np.mean(losses[-period:])
+    rsi_series = calculate_rsi_series(prices_series, period=period).dropna()
+    if rsi_series.empty:
+        return None
 
-    if avg_loss == 0:
-        return 100.0
-
-    rs = avg_gain / avg_loss
-    rsi = 100 - (100 / (1 + rs))
-
-    return float(rsi)
+    return float(rsi_series.iloc[-1])
 
 
 def calculate_rsi_series(
@@ -75,15 +69,24 @@ def calculate_rsi_series(
     Returns:
         RSI series
     """
+    if period <= 0:
+        return pd.Series(dtype="float64")
+
+    prices = prices.astype("float64")
     delta = prices.diff()
-    gain = delta.where(delta > 0, 0)
-    loss = (-delta).where(delta < 0, 0)
+    gain = delta.where(delta > 0, 0.0)
+    loss = (-delta.where(delta < 0, 0.0))
 
-    avg_gain = gain.rolling(window=period).mean()
-    avg_loss = loss.rolling(window=period).mean()
+    # Wilder-style smoothing via EMA(alpha=1/period).
+    avg_gain = gain.ewm(alpha=1 / period, min_periods=period).mean()
+    avg_loss = loss.ewm(alpha=1 / period, min_periods=period).mean()
 
-    rs = avg_gain / avg_loss
+    rs = avg_gain / avg_loss.replace(0, np.nan)
     rsi = 100 - (100 / (1 + rs))
+
+    # Convention: no losses => RSI 100, no gains and no losses => RSI 50.
+    rsi = rsi.where(avg_loss != 0, 100.0)
+    rsi = rsi.where(~((avg_gain == 0) & (avg_loss == 0)), 50.0)
 
     return rsi
 

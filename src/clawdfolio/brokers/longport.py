@@ -166,7 +166,7 @@ class LongportBroker(BaseBroker):
 
             # Get quotes for positions
             if symbols_to_quote:
-                quotes = self.get_quotes([Position.symbol for p in positions])
+                quotes = self.get_quotes([p.symbol for p in positions])
                 for pos in positions:
                     if pos.symbol.ticker in quotes:
                         pos.update_from_quote(quotes[pos.symbol.ticker])

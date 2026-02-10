@@ -1,6 +1,7 @@
 """Tests for analysis modules."""
 
 import numpy as np
+import pandas as pd
 
 from clawdfolio.analysis.concentration import (
     calculate_concentration,
@@ -17,6 +18,7 @@ from clawdfolio.analysis.technical import (
     calculate_bollinger_bands,
     calculate_ema,
     calculate_rsi,
+    calculate_rsi_series,
     calculate_sma,
 )
 
@@ -120,6 +122,49 @@ class TestTechnicalIndicators:
         prices = [100, 101, 102]
         rsi = calculate_rsi(prices, period=14)
         assert rsi is None
+
+    def test_calculate_rsi_series_uses_wilder_ema(self):
+        """RSI series should follow Wilder EMA smoothing, not simple rolling averages."""
+        prices = pd.Series(
+            [
+                100, 101, 103, 102, 104, 107, 106, 105, 104, 103,
+                102, 101, 100, 99, 98, 99, 100, 101, 102, 103,
+                104, 105, 103, 101, 99, 100, 102, 104, 103, 105,
+            ],
+            dtype="float64",
+        )
+        period = 14
+
+        actual = calculate_rsi_series(prices, period=period)
+
+        delta = prices.diff()
+        gain = delta.where(delta > 0, 0.0)
+        loss = (-delta.where(delta < 0, 0.0))
+        expected = 100 - (
+            100
+            / (
+                1
+                + gain.ewm(alpha=1 / period, min_periods=period).mean()
+                / loss.ewm(alpha=1 / period, min_periods=period).mean()
+            )
+        )
+        simple = 100 - (100 / (1 + gain.rolling(period).mean() / loss.rolling(period).mean()))
+
+        np.testing.assert_allclose(
+            actual.dropna().tail(5).to_numpy(),
+            expected.dropna().tail(5).to_numpy(),
+            rtol=1e-9,
+            atol=1e-9,
+        )
+        # Ensure we are not silently using the old simple rolling average implementation.
+        assert abs(actual.iloc[-1] - simple.iloc[-1]) > 1.0
+
+    def test_calculate_rsi_flat_prices(self):
+        """Flat prices should produce neutral RSI."""
+        prices = [100.0] * 30
+        rsi = calculate_rsi(prices, period=14)
+        assert rsi is not None
+        assert abs(rsi - 50.0) < 1e-9
 
     def test_calculate_sma(self):
         """Test SMA calculation."""

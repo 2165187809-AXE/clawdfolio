@@ -88,14 +88,31 @@ def get_history_multi(tickers: list[str], period: str = "1y") -> pd.DataFrame:
     """Get price history for multiple tickers. Cached 1 hour."""
     yf = _import_yf()
     syms = [t.replace(".", "-") for t in tickers]
+    sym_to_ticker = {sym: ticker for sym, ticker in zip(syms, tickers, strict=False)}
     key = f"hist_multi:{','.join(sorted(syms))}:{period}"
 
     def _fetch():
         try:
             df = yf.download(syms, period=period, interval="1d", progress=False, auto_adjust=True)
+            if df is None or df.empty:
+                return pd.DataFrame()
+
             if isinstance(df.columns, pd.MultiIndex):
-                df = df["Close"]
-            return df
+                # MultiIndex layout: first level is OHLCV, second level is ticker.
+                if "Close" not in df.columns.get_level_values(0):
+                    return pd.DataFrame()
+                close = df["Close"]
+                if isinstance(close, pd.Series):
+                    close = close.to_frame(name=tickers[0] if tickers else "Close")
+                else:
+                    close = close.rename(columns=sym_to_ticker)
+                return close
+
+            # Single ticker may come back as OHLCV columns; normalize to one "ticker" column.
+            if "Close" in df.columns and len(tickers) == 1:
+                return df[["Close"]].rename(columns={"Close": tickers[0]})
+
+            return df.rename(columns=sym_to_ticker)
         except Exception:
             return pd.DataFrame()
 
@@ -123,6 +140,24 @@ def get_quote(ticker: str) -> Quote | None:
             price = info.get("currentPrice") or info.get("regularMarketPrice")
         if prev_close is None:
             prev_close = info.get("previousClose") or info.get("regularMarketPreviousClose")
+
+        # Fallback when fast_info/info misses price fields.
+        if price is None or prev_close is None:
+            try:
+                hist = t.history(period="5d", interval="1d", auto_adjust=False)
+                if isinstance(getattr(hist, "columns", None), pd.MultiIndex):
+                    hist.columns = hist.columns.get_level_values(0)
+                closes = hist["Close"].dropna() if hist is not None and not hist.empty and "Close" in hist else None
+                if closes is not None and not closes.empty:
+                    if price is None:
+                        price = float(closes.iloc[-1])
+                    if prev_close is None:
+                        if len(closes) >= 2:
+                            prev_close = float(closes.iloc[-2])
+                        else:
+                            prev_close = float(closes.iloc[-1])
+            except Exception:
+                pass
 
         if price is None:
             return None
