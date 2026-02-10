@@ -1,4 +1,4 @@
-"""Clawdfolio - AI portfolio monitoring with v2 finance workflows and production-grade reliability."""
+"""Clawdfolio - AI portfolio monitoring for Clawdbot with v2 finance workflows and production-grade reliability."""
 
 __version__ = "2.0.0"
 __author__ = "YICHENG YANG"

@@ -3,13 +3,14 @@
 [![CI](https://github.com/2165187809-AXE/clawdfolio/actions/workflows/ci.yml/badge.svg)](https://github.com/2165187809-AXE/clawdfolio/actions/workflows/ci.yml)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Claude Code](https://img.shields.io/badge/Claude%20Code-技能-blueviolet)](https://github.com/anthropics/claude-code)
+[![Clawdbot](https://img.shields.io/badge/Clawdbot-技能-1f7a4c)](https://github.com/2165187809-AXE/clawdfolio)
+[![Claude Code Compatible](https://img.shields.io/badge/Claude%20Code-兼容-blueviolet)](https://github.com/anthropics/claude-code)
 
 [English](README.md) | 中文
 
-> **为 Claude Code 生态打造的 AI 投资组合监控工具**
+> **为 Clawdbot 生态打造的 AI 投资组合监控工具**
 >
-> 投资者的终极 Claude Code 技能 - 支持多券商持仓聚合、机构级风险指标计算和智能交易警报，并具备生产级数据可靠性。
+> 面向实盘的 Clawdbot 金融技能 - 支持多券商持仓聚合、机构级风险指标计算和智能交易警报，并具备生产级数据可靠性。
 
 ---
 
@@ -21,7 +22,7 @@
 | 简单盈亏统计 | VaR、夏普比率、Beta、最大回撤 |
 | 单一券商视图 | 多券商聚合 |
 | Excel 设置警报 | 智能 RSI/价格警报 |
-| 无 AI 集成 | **Claude Code 原生技能** |
+| 无 AI 集成 | **Clawdbot 原生技能** |
 
 ---
 
@@ -51,9 +52,9 @@
 
 ## 快速开始
 
-### 作为 Claude Code 技能使用
+### 作为 Clawdbot 技能使用
 
-直接在 Claude Code 中输入：
+在 Clawdbot 中直接运行：
 
 ```
 /clawdfolio summary
@@ -61,6 +62,8 @@
 /clawdfolio quotes AAPL MSFT NVDA
 /clawdfolio alerts
 ```
+
+`clawdfolio` 同时兼容 Claude Code 的 CLI 使用方式。
 
 ### 命令行安装
 
@@ -220,7 +223,7 @@ MIT License - 查看 [LICENSE](LICENSE)
 
 - [GitHub 仓库](https://github.com/2165187809-AXE/clawdfolio)
 - [问题反馈](https://github.com/2165187809-AXE/clawdfolio/issues)
-- [Claude Code](https://github.com/anthropics/claude-code)
+- [Claude Code 兼容说明](https://github.com/anthropics/claude-code)
 
 ---
 

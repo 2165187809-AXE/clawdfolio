@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "clawdfolio"
 version = "2.0.0"
-description = "AI-powered portfolio monitoring for Claude Code with v2 full finance workflows, option analytics, and production-grade broker/market reliability"
+description = "AI-powered portfolio monitoring for Clawdbot with v2 full finance workflows, option analytics, and production-grade broker/market reliability"
 readme = "README.md"
 license = "MIT"
 requires-python = ">=3.10"
@@ -13,7 +13,8 @@ authors = [
     { name = "YICHENG YANG" }
 ]
 keywords = [
-    "claude-code",
+    "clawdbot",
+    "claude-code-compatible",
     "ai",
     "finance",
     "portfolio",

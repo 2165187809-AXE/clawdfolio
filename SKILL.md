@@ -1,11 +1,12 @@
 ---
 name: clawdfolio
-version: 1.0.1
-description: AI-powered portfolio monitoring for Claude Code - Multi-broker support with professional risk analytics
+version: 2.0.0
+description: AI-powered portfolio monitoring for Clawdbot - Multi-broker support with professional risk analytics and finance workflows
 author: YICHENG YANG
 license: MIT
 keywords:
-  - claude-code
+  - clawdbot
+  - claude-code-compatible
   - ai
   - finance
   - portfolio
@@ -27,7 +28,7 @@ optional_dependencies:
 
 # Clawdfolio 🦙📊
 
-AI-powered portfolio monitoring for professional investors in the Claude Code ecosystem.
+AI-powered portfolio monitoring for professional investors in the Clawdbot ecosystem.
 Supports multiple brokers including Longport (Longbridge) and Moomoo/Futu.
 
 ## Features

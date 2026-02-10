@@ -3,13 +3,14 @@
 [![CI](https://github.com/2165187809-AXE/clawdfolio/actions/workflows/ci.yml/badge.svg)](https://github.com/2165187809-AXE/clawdfolio/actions/workflows/ci.yml)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Claude Code](https://img.shields.io/badge/Claude%20Code-Skill-blueviolet)](https://github.com/anthropics/claude-code)
+[![Clawdbot](https://img.shields.io/badge/Clawdbot-Skill-1f7a4c)](https://github.com/2165187809-AXE/clawdfolio)
+[![Claude Code Compatible](https://img.shields.io/badge/Claude%20Code-Compatible-blueviolet)](https://github.com/anthropics/claude-code)
 
 English | [中文](README_CN.md)
 
-> **AI-powered portfolio monitoring for the Claude Code ecosystem.**
+> **AI-powered portfolio monitoring for the Clawdbot ecosystem.**
 >
-> The ultimate Claude Code Skill for investors - aggregates portfolios from multiple brokers, calculates institutional-grade risk metrics, and generates intelligent trading alerts with production-grade data reliability.
+> A production-oriented Clawdbot finance skill - aggregates portfolios from multiple brokers, calculates institutional-grade risk metrics, and generates intelligent trading alerts with production-grade data reliability.
 
 ---
 
@@ -21,7 +22,7 @@ English | [中文](README_CN.md)
 | Basic P&L tracking | VaR, Sharpe, Beta, Max Drawdown |
 | Single broker view | Multi-broker aggregation |
 | Spreadsheet alerts | Smart RSI/price alerts |
-| No AI integration | **Claude Code native skill** |
+| No AI integration | **Clawdbot native skill** |
 
 ---
 
@@ -51,9 +52,9 @@ English | [中文](README_CN.md)
 
 ## Quick Start
 
-### As Claude Code Skill
+### As Clawdbot Skill
 
-Simply ask Claude Code:
+Run in Clawdbot:
 
 ```
 /clawdfolio summary
@@ -61,6 +62,8 @@ Simply ask Claude Code:
 /clawdfolio quotes AAPL MSFT NVDA
 /clawdfolio alerts
 ```
+
+`clawdfolio` is also CLI-compatible with Claude Code environments.
 
 ### CLI Installation
 
@@ -220,7 +223,7 @@ MIT License - see [LICENSE](LICENSE)
 
 - [GitHub Repository](https://github.com/2165187809-AXE/clawdfolio)
 - [Report Issues](https://github.com/2165187809-AXE/clawdfolio/issues)
-- [Claude Code](https://github.com/anthropics/claude-code)
+- [Claude Code Compatibility](https://github.com/anthropics/claude-code)
 
 ---
 
