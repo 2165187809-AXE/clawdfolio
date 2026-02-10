@@ -10,7 +10,7 @@ English | [中文](README_CN.md)
 
 > **AI-powered portfolio monitoring for the Clawdbot ecosystem.**
 >
-> A production-oriented Clawdbot finance skill - aggregates portfolios from multiple brokers, calculates institutional-grade risk metrics, and generates intelligent trading alerts with production-grade data reliability. Its option methodology is documented from self-study of authoritative materials, rigorous backtesting, and multi-year live trading practice.
+> A production-oriented Clawdbot finance skill - aggregates portfolios from multiple brokers, calculates institutional-grade risk metrics, and generates intelligent trading alerts with production-grade data reliability. Its option methodology is documented from authoritative materials, rigorous backtesting, and multi-year live trading practice.
 
 ---
 

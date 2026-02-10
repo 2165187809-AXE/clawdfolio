@@ -6,7 +6,7 @@ This document is the core options framework behind `clawdfolio` option workflows
 
 This playbook is based on:
 
-- self-study from multiple authoritative options books and courses,
+- structured study from multiple authoritative options books and courses,
 - rigorous data analysis and backtesting,
 - multi-year live options trading experience.
 
