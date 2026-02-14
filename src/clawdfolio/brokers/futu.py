@@ -2,44 +2,25 @@
 
 from __future__ import annotations
 
-import os
+import logging
 import socket
-from contextlib import contextmanager
 from datetime import datetime
 from decimal import Decimal
 from typing import TYPE_CHECKING, Any
 
 from ..core.exceptions import BrokerError
 from ..core.types import Exchange, Portfolio, Position, Quote, Symbol
+from ..utils.suppress import suppress_stdio
 from .base import BaseBroker
 from .registry import register_broker
 
 if TYPE_CHECKING:
     from ..core.config import BrokerConfig
 
+logger = logging.getLogger(__name__)
 
 DEFAULT_HOST = "127.0.0.1"
 DEFAULT_PORT = 11111
-
-
-@contextmanager
-def _suppress_stdio():
-    """Suppress stdout/stderr from native SDK."""
-    devnull = os.open(os.devnull, os.O_WRONLY)
-    saved_out = os.dup(1)
-    saved_err = os.dup(2)
-    try:
-        os.dup2(devnull, 1)
-        os.dup2(devnull, 2)
-        yield
-    finally:
-        try:
-            os.dup2(saved_out, 1)
-            os.dup2(saved_err, 2)
-        finally:
-            os.close(saved_out)
-            os.close(saved_err)
-            os.close(devnull)
 
 
 def _check_connectivity(host: str, port: int, timeout: float = 1.0) -> bool:
@@ -86,6 +67,7 @@ class FutuBroker(BaseBroker):
         try:
             # Suppress futu logger
             from futu.common import ft_logger
+
             ft_logger.logger.console_level = 50
 
             from futu import (
@@ -108,6 +90,7 @@ class FutuBroker(BaseBroker):
             )
 
             self._connected = True
+            logger.info("Connected to Moomoo OpenD at %s:%s", self._host, self._port)
             return True
         except Exception as e:
             raise BrokerError("futu", f"Connection failed: {e}") from e
@@ -227,10 +210,10 @@ class FutuBroker(BaseBroker):
                     source="futu",
                 ))
 
-        except Exception as e:
-            if "Failed to fetch positions" not in str(e):
-                raise BrokerError("futu", f"Failed to fetch positions: {e}") from e
+        except BrokerError:
             raise
+        except Exception as e:
+            raise BrokerError("futu", f"Failed to fetch positions: {e}") from e
 
         return positions
 
@@ -255,13 +238,13 @@ class FutuBroker(BaseBroker):
         codes = [f"US.{s.ticker}" for s in symbols]
 
         try:
-            with _suppress_stdio():
+            with suppress_stdio():
                 ret, df = self._quote_ctx.get_market_snapshot(codes)
 
             if ret != RET_OK or df is None or df.empty:
                 # Fallback to individual quotes
                 for sym in symbols:
-                    with _suppress_stdio():
+                    with suppress_stdio():
                         ret2, df2 = self._quote_ctx.get_stock_quote([f"US.{sym.ticker}"])
                     if ret2 == RET_OK and df2 is not None and not df2.empty:
                         r = df2.iloc[0]

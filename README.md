@@ -1,9 +1,9 @@
 # Clawdfolio 🦙📊
 
-[![CI](https://github.com/2165187809-AXE/clawdfolio/actions/workflows/ci.yml/badge.svg)](https://github.com/2165187809-AXE/clawdfolio/actions/workflows/ci.yml)
+[![CI](https://github.com/YichengYang-Ethan/clawdfolio/actions/workflows/ci.yml/badge.svg)](https://github.com/YichengYang-Ethan/clawdfolio/actions/workflows/ci.yml)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Clawdbot](https://img.shields.io/badge/Clawdbot-Skill-1f7a4c)](https://github.com/2165187809-AXE/clawdfolio)
+[![Clawdbot](https://img.shields.io/badge/Clawdbot-Skill-1f7a4c)](https://github.com/YichengYang-Ethan/clawdfolio)
 [![Claude Code Compatible](https://img.shields.io/badge/Claude%20Code-Compatible-blueviolet)](https://github.com/anthropics/claude-code)
 
 English | [中文](README_CN.md)
@@ -38,6 +38,21 @@ English | [中文](README_CN.md)
 - **Options Toolkit** - Option quote/Greeks, option chain snapshot, buyback trigger monitor
 - **Options Strategy Playbook (v2.1)** - Dedicated methodology for Covered Call and Sell Put lifecycle management, with delta/gamma/margin guardrails
 - **Finance Workflow Suite (v2)** - 20 migrated production workflows from local `~/clawd/scripts`, categorized and runnable via `clawdfolio finance`
+
+---
+
+## What's New in v2.2.0
+
+- **Thread-safe caching** - Market data cache is now protected by `threading.Lock` for safe concurrent access
+- **Batch quote fetching** - `get_quotes_yfinance` uses `yf.download` for batch retrieval with individual fallback, significantly reducing API calls
+- **Shared utility layer** - Extracted duplicate `suppress_stdio` into `clawdfolio.utils.suppress` (DRY refactor)
+- **Dynamic version management** - CLI version now reads from `__version__` instead of hardcoded string
+- **PEP 561 compliance** - Added `py.typed` marker for downstream type-checking support
+- **Unified branding** - Config paths migrated from `portfolio-monitor` to `clawdfolio` (with backward-compatible fallback); env var `CLAWDFOLIO_CONFIG` preferred over legacy `PORTFOLIO_MONITOR_CONFIG`
+- **Repository URL fix** - All links in `pyproject.toml`, `README.md`, and `README_CN.md` now point to the correct GitHub repository
+- **Structured logging** - Replaced bare `print`-based debugging with Python `logging` module across core modules
+- **Improved NaN handling** - Replaced `num == num` idiom with explicit `math.isnan` for clarity
+- **Ticker normalisation helper** - Centralised `_yf_symbol()` to eliminate scattered `ticker.replace(".", "-")` calls
 
 ---
 
@@ -233,8 +248,8 @@ MIT License - see [LICENSE](LICENSE)
 
 ## Links
 
-- [GitHub Repository](https://github.com/2165187809-AXE/clawdfolio)
-- [Report Issues](https://github.com/2165187809-AXE/clawdfolio/issues)
+- [GitHub Repository](https://github.com/YichengYang-Ethan/clawdfolio)
+- [Report Issues](https://github.com/YichengYang-Ethan/clawdfolio/issues)
 - [Claude Code Compatibility](https://github.com/anthropics/claude-code)
 
 ---

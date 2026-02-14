@@ -2,7 +2,10 @@
 
 from __future__ import annotations
 
+import logging
+import math
 import socket
+import threading
 import time
 from dataclasses import dataclass
 from datetime import datetime
@@ -12,6 +15,8 @@ from typing import Any
 import pandas as pd
 
 from ..core.types import Quote, Symbol
+
+logger = logging.getLogger(__name__)
 
 # Lazy yfinance import
 _yf = None
@@ -25,31 +30,50 @@ def _import_yf():
     return _yf
 
 
-# Simple in-memory cache
+# ---------------------------------------------------------------------------
+# Thread-safe in-memory cache
+# ---------------------------------------------------------------------------
 _cache: dict[str, tuple[float, Any]] = {}
+_cache_lock = threading.Lock()
 
 
 def _cached(key: str, ttl: float, fn):
     """Return cached value if within TTL, else call fn and cache."""
     now = time.time()
-    if key in _cache:
-        ts, val = _cache[key]
-        if now - ts < ttl:
-            return val
+    with _cache_lock:
+        if key in _cache:
+            ts, val = _cache[key]
+            if now - ts < ttl:
+                return val
     val = fn()
-    _cache[key] = (now, val)
+    with _cache_lock:
+        _cache[key] = (now, val)
     return val
 
 
 def clear_cache() -> None:
     """Clear the market data cache."""
-    _cache.clear()
+    with _cache_lock:
+        _cache.clear()
 
+
+# ---------------------------------------------------------------------------
+# Ticker normalisation helper
+# ---------------------------------------------------------------------------
+
+def _yf_symbol(ticker: str) -> str:
+    """Normalise a ticker for yfinance (e.g. ``BRK.B`` → ``BRK-B``)."""
+    return ticker.replace(".", "-")
+
+
+# ---------------------------------------------------------------------------
+# Price & history
+# ---------------------------------------------------------------------------
 
 def get_price(ticker: str) -> float | None:
     """Get current price via yfinance. Cached 5 minutes."""
     yf = _import_yf()
-    sym = ticker.replace(".", "-")
+    sym = _yf_symbol(ticker)
 
     def _fetch():
         try:
@@ -62,6 +86,7 @@ def get_price(ticker: str) -> float | None:
             info = t.info
             return float(info.get("currentPrice") or info.get("regularMarketPrice") or 0) or None
         except Exception:
+            logger.debug("Failed to get price for %s", sym, exc_info=True)
             return None
 
     return _cached(f"price:{sym}", 300, _fetch)
@@ -70,7 +95,7 @@ def get_price(ticker: str) -> float | None:
 def get_history(ticker: str, period: str = "1y") -> pd.DataFrame:
     """Get price history. Cached 1 hour."""
     yf = _import_yf()
-    sym = ticker.replace(".", "-")
+    sym = _yf_symbol(ticker)
 
     def _fetch():
         try:
@@ -80,6 +105,7 @@ def get_history(ticker: str, period: str = "1y") -> pd.DataFrame:
                 df.columns = df.columns.get_level_values(0)
             return df
         except Exception:
+            logger.debug("Failed to get history for %s", sym, exc_info=True)
             return pd.DataFrame()
 
     return _cached(f"hist:{sym}:{period}", 3600, _fetch)
@@ -88,7 +114,7 @@ def get_history(ticker: str, period: str = "1y") -> pd.DataFrame:
 def get_history_multi(tickers: list[str], period: str = "1y") -> pd.DataFrame:
     """Get price history for multiple tickers. Cached 1 hour."""
     yf = _import_yf()
-    syms = [t.replace(".", "-") for t in tickers]
+    syms = [_yf_symbol(t) for t in tickers]
     sym_to_ticker = dict(zip(syms, tickers, strict=False))
     key = f"hist_multi:{','.join(sorted(syms))}:{period}"
 
@@ -115,15 +141,20 @@ def get_history_multi(tickers: list[str], period: str = "1y") -> pd.DataFrame:
 
             return df.rename(columns=sym_to_ticker)
         except Exception:
+            logger.debug("Failed to get multi-history", exc_info=True)
             return pd.DataFrame()
 
     return _cached(key, 3600, _fetch)
 
 
+# ---------------------------------------------------------------------------
+# Quotes
+# ---------------------------------------------------------------------------
+
 def get_quote(ticker: str) -> Quote | None:
     """Get a Quote object for a ticker."""
     yf = _import_yf()
-    sym = ticker.replace(".", "-")
+    sym = _yf_symbol(ticker)
 
     try:
         t = yf.Ticker(sym)
@@ -175,18 +206,68 @@ def get_quote(ticker: str) -> Quote | None:
             source="yfinance",
         )
     except Exception:
+        logger.debug("Failed to get quote for %s", sym, exc_info=True)
         return None
 
 
 def get_quotes_yfinance(tickers: list[str]) -> dict[str, Quote]:
-    """Get quotes for multiple tickers."""
-    result = {}
+    """Get quotes for multiple tickers.
+
+    Uses ``yfinance.download`` for batch fetching when possible, falling
+    back to individual ``get_quote`` calls for any tickers that fail.
+    """
+    if not tickers:
+        return {}
+
+    yf = _import_yf()
+    result: dict[str, Quote] = {}
+    syms = [_yf_symbol(t) for t in tickers]
+    sym_to_ticker = dict(zip(syms, tickers, strict=False))
+
+    try:
+        df = yf.download(syms, period="5d", interval="1d", progress=False, auto_adjust=False)
+        if df is not None and not df.empty:
+            if isinstance(df.columns, pd.MultiIndex):
+                close_df = df["Close"] if "Close" in df.columns.get_level_values(0) else None
+            elif "Close" in df.columns:
+                close_df = df[["Close"]].rename(columns={"Close": syms[0]}) if len(syms) == 1 else None
+            else:
+                close_df = None
+
+            if close_df is not None:
+                for sym in syms:
+                    col = close_df[sym] if sym in close_df.columns else None
+                    if col is None:
+                        continue
+                    closes = col.dropna()
+                    if closes.empty:
+                        continue
+                    price = float(closes.iloc[-1])
+                    prev_close = float(closes.iloc[-2]) if len(closes) >= 2 else price
+                    ticker = sym_to_ticker[sym]
+                    result[ticker] = Quote(
+                        symbol=Symbol(ticker=ticker),
+                        price=Decimal(str(price)),
+                        prev_close=Decimal(str(prev_close)),
+                        timestamp=datetime.now(),
+                        source="yfinance",
+                    )
+    except Exception:
+        logger.debug("Batch quote download failed, falling back to individual", exc_info=True)
+
+    # Fallback for any tickers not resolved via batch
     for ticker in tickers:
-        quote = get_quote(ticker)
-        if quote:
-            result[ticker] = quote
+        if ticker not in result:
+            quote = get_quote(ticker)
+            if quote:
+                result[ticker] = quote
+
     return result
 
+
+# ---------------------------------------------------------------------------
+# News
+# ---------------------------------------------------------------------------
 
 @dataclass
 class NewsItem:
@@ -248,7 +329,7 @@ class OptionChainData:
 def get_news(ticker: str, max_items: int = 5) -> list[NewsItem]:
     """Get recent news for a ticker."""
     yf = _import_yf()
-    sym = ticker.replace(".", "-")
+    sym = _yf_symbol(ticker)
 
     try:
         t = yf.Ticker(sym)
@@ -264,7 +345,7 @@ def get_news(ticker: str, max_items: int = 5) -> list[NewsItem]:
             if "pubDate" in content:
                 try:
                     pub_time = datetime.fromisoformat(content["pubDate"].replace("Z", "+00:00")).replace(tzinfo=None)
-                except Exception:
+                except (ValueError, TypeError):
                     pass
             elif "providerPublishTime" in item:
                 pub_time = datetime.fromtimestamp(item["providerPublishTime"])
@@ -293,15 +374,20 @@ def get_news(ticker: str, max_items: int = 5) -> list[NewsItem]:
             ))
         return result
     except Exception:
+        logger.debug("Failed to get news for %s", sym, exc_info=True)
         return []
 
+
+# ---------------------------------------------------------------------------
+# Options helpers
+# ---------------------------------------------------------------------------
 
 def _moomoo_available(host: str = "127.0.0.1", port: int = 11111) -> bool:
     """Check if moomoo OpenD is reachable."""
     try:
         with socket.create_connection((host, port), timeout=2.0):
             return True
-    except Exception:
+    except (TimeoutError, OSError):
         return False
 
 
@@ -320,8 +406,8 @@ def _safe_float(value: Any, default: float | None = None) -> float | None:
     """Convert to float with NaN handling."""
     try:
         num = float(value)
-        return num if num == num else default
-    except Exception:
+        return num if not math.isnan(num) else default
+    except (TypeError, ValueError):
         return default
 
 
@@ -377,6 +463,7 @@ def _get_option_quote_moomoo(
         finally:
             ctx.close()
     except Exception:
+        logger.debug("moomoo option quote failed for %s", ticker, exc_info=True)
         return None
 
 
@@ -396,7 +483,7 @@ def get_option_quote(
             return quote
 
         yf = _import_yf()
-        sym = ticker.replace(".", "-")
+        sym = _yf_symbol(ticker)
         try:
             chain = yf.Ticker(sym).option_chain(expiry)
             table = chain.calls if opt == "C" else chain.puts
@@ -419,6 +506,7 @@ def get_option_quote(
                 source="yfinance",
             )
         except Exception:
+            logger.debug("yfinance option quote failed for %s", ticker, exc_info=True)
             return None
 
     return _cached(key, 300, _fetch)
@@ -487,6 +575,7 @@ def _get_option_chain_moomoo(ticker: str, expiry: str) -> OptionChainData | None
         finally:
             ctx.close()
     except Exception:
+        logger.debug("moomoo option chain failed for %s", ticker, exc_info=True)
         return None
 
 
@@ -500,7 +589,7 @@ def get_option_chain(ticker: str, expiry: str) -> OptionChainData | None:
             return chain
 
         yf = _import_yf()
-        sym = ticker.replace(".", "-")
+        sym = _yf_symbol(ticker)
         try:
             raw_chain = yf.Ticker(sym).option_chain(expiry)
             calls = raw_chain.calls if hasattr(raw_chain, "calls") else pd.DataFrame()
@@ -516,6 +605,7 @@ def get_option_chain(ticker: str, expiry: str) -> OptionChainData | None:
                 puts=puts.reset_index(drop=True),
             )
         except Exception:
+            logger.debug("yfinance option chain failed for %s", ticker, exc_info=True)
             return None
 
     return _cached(key, 300, _fetch)
@@ -524,18 +614,23 @@ def get_option_chain(ticker: str, expiry: str) -> OptionChainData | None:
 def get_option_expiries(ticker: str) -> list[str]:
     """Get available option expiry dates for ticker."""
     yf = _import_yf()
-    sym = ticker.replace(".", "-")
+    sym = _yf_symbol(ticker)
     try:
         expiries = yf.Ticker(sym).options
         return list(expiries) if expiries else []
     except Exception:
+        logger.debug("Failed to get option expiries for %s", sym, exc_info=True)
         return []
 
+
+# ---------------------------------------------------------------------------
+# Fundamentals
+# ---------------------------------------------------------------------------
 
 def get_earnings_date(ticker: str) -> tuple[datetime, str] | None:
     """Get next earnings date and timing (BMO/AMC/TBD)."""
     yf = _import_yf()
-    sym = ticker.replace(".", "-")
+    sym = _yf_symbol(ticker)
 
     try:
         t = yf.Ticker(sym)
@@ -568,13 +663,14 @@ def get_earnings_date(ticker: str) -> tuple[datetime, str] | None:
 
         return dt, timing
     except Exception:
+        logger.debug("Failed to get earnings date for %s", sym, exc_info=True)
         return None
 
 
 def get_sector(ticker: str) -> str | None:
     """Get sector from yfinance. Cached 1 hour."""
     yf = _import_yf()
-    sym = ticker.replace(".", "-")
+    sym = _yf_symbol(ticker)
 
     def _fetch():
         try:
@@ -588,7 +684,7 @@ def get_sector(ticker: str) -> str | None:
 def get_sector_and_industry(ticker: str) -> tuple[str, str]:
     """Get sector and industry. Cached 1 hour."""
     yf = _import_yf()
-    sym = ticker.replace(".", "-")
+    sym = _yf_symbol(ticker)
 
     def _fetch():
         try:
@@ -603,7 +699,7 @@ def get_sector_and_industry(ticker: str) -> tuple[str, str]:
 def get_stock_info(ticker: str) -> dict[str, Any]:
     """Get basic stock info (name, sector, marketCap). Cached 1 hour."""
     yf = _import_yf()
-    sym = ticker.replace(".", "-")
+    sym = _yf_symbol(ticker)
 
     def _fetch():
         try:

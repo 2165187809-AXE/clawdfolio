@@ -1,6 +1,6 @@
 """Clawdfolio - AI portfolio monitoring for Clawdbot with v2 finance workflows and production-grade reliability."""
 
-__version__ = "2.1.0"
+__version__ = "2.2.0"
 __author__ = "YICHENG YANG"
 
 from .core.config import Config, load_config

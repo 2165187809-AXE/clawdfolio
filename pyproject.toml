@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "clawdfolio"
-version = "2.1.0"
+version = "2.2.0"
 description = "AI-powered portfolio monitoring for Clawdbot with v2 finance workflows, option analytics, and a battle-tested options strategy playbook"
 readme = "README.md"
 license = "MIT"
@@ -75,10 +75,10 @@ dev = [
 clawdfolio = "clawdfolio.cli.main:main"
 
 [project.urls]
-Homepage = "https://github.com/2165187809-AXE/clawdfolio"
-Documentation = "https://github.com/2165187809-AXE/clawdfolio#readme"
-Repository = "https://github.com/2165187809-AXE/clawdfolio.git"
-Issues = "https://github.com/2165187809-AXE/clawdfolio/issues"
+Homepage = "https://github.com/YichengYang-Ethan/clawdfolio"
+Documentation = "https://github.com/YichengYang-Ethan/clawdfolio#readme"
+Repository = "https://github.com/YichengYang-Ethan/clawdfolio.git"
+Issues = "https://github.com/YichengYang-Ethan/clawdfolio/issues"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/clawdfolio"]
