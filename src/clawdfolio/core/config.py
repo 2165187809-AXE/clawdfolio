@@ -1,4 +1,4 @@
-"""Configuration management for Portfolio Monitor."""
+"""Configuration management for Clawdfolio."""
 
 from __future__ import annotations
 
@@ -217,18 +217,23 @@ def load_config(path: str | Path | None = None) -> Config:
 
     Search order:
     1. Explicit path argument
-    2. PORTFOLIO_MONITOR_CONFIG environment variable
+    2. CLAWDFOLIO_CONFIG environment variable (legacy: PORTFOLIO_MONITOR_CONFIG)
     3. ./config.yaml
     4. ./config.json
-    5. ~/.config/portfolio-monitor/config.yaml
-    6. Default config
+    5. ~/.config/clawdfolio/config.yaml
+    6. ~/.config/clawdfolio/config.json
+    7. ~/.config/portfolio-monitor/config.yaml  (legacy fallback)
+    8. ~/.config/portfolio-monitor/config.json   (legacy fallback)
+    9. Default config
     """
     search_paths: list[Path] = []
 
     if path:
         search_paths.append(Path(path))
 
-    env_path = os.environ.get("PORTFOLIO_MONITOR_CONFIG")
+    env_path = os.environ.get("CLAWDFOLIO_CONFIG") or os.environ.get(
+        "PORTFOLIO_MONITOR_CONFIG"
+    )
     if env_path:
         search_paths.append(Path(env_path))
 
@@ -236,6 +241,9 @@ def load_config(path: str | Path | None = None) -> Config:
         [
             Path("config.yaml"),
             Path("config.json"),
+            Path.home() / ".config" / "clawdfolio" / "config.yaml",
+            Path.home() / ".config" / "clawdfolio" / "config.json",
+            # Legacy paths for backward compatibility
             Path.home() / ".config" / "portfolio-monitor" / "config.yaml",
             Path.home() / ".config" / "portfolio-monitor" / "config.json",
         ]

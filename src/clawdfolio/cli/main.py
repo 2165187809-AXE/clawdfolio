@@ -3,11 +3,16 @@
 from __future__ import annotations
 
 import argparse
+import logging
 import sys
 from typing import TYPE_CHECKING
 
+from .. import __version__
+
 if TYPE_CHECKING:
     from argparse import Namespace
+
+logger = logging.getLogger(__name__)
 
 
 def create_parser() -> argparse.ArgumentParser:
@@ -22,7 +27,7 @@ def create_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--version",
         action="version",
-        version="%(prog)s 2.1.0",
+        version=f"%(prog)s {__version__}",
     )
 
     parser.add_argument(

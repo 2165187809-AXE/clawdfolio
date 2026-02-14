@@ -1,9 +1,9 @@
 # Clawdfolio 🦙📊
 
-[![CI](https://github.com/2165187809-AXE/clawdfolio/actions/workflows/ci.yml/badge.svg)](https://github.com/2165187809-AXE/clawdfolio/actions/workflows/ci.yml)
+[![CI](https://github.com/YichengYang-Ethan/clawdfolio/actions/workflows/ci.yml/badge.svg)](https://github.com/YichengYang-Ethan/clawdfolio/actions/workflows/ci.yml)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Clawdbot](https://img.shields.io/badge/Clawdbot-技能-1f7a4c)](https://github.com/2165187809-AXE/clawdfolio)
+[![Clawdbot](https://img.shields.io/badge/Clawdbot-技能-1f7a4c)](https://github.com/YichengYang-Ethan/clawdfolio)
 [![Claude Code Compatible](https://img.shields.io/badge/Claude%20Code-兼容-blueviolet)](https://github.com/anthropics/claude-code)
 
 [English](README.md) | 中文
@@ -38,6 +38,21 @@
 - **期权工具集** - 期权报价/Greeks、期权链快照、回补触发监控
 - **期权策略手册 (v2.1)** - 覆盖式卖出看涨与裸卖看跌的完整流程，含 Delta/Gamma/保证金风控规则
 - **金融工作流套件 (v2)** - 从本地 `~/clawd/scripts` 全量迁移 20 个实盘脚本，并可通过 `clawdfolio finance` 分类运行
+
+---
+
+## v2.2.0 最新优化
+
+- **线程安全缓存** - 市场数据缓存现已通过 `threading.Lock` 保护，支持安全并发访问
+- **批量报价获取** - `get_quotes_yfinance` 使用 `yf.download` 批量获取数据并支持逐个回退，显著减少 API 调用次数
+- **共享工具层** - 将重复的 `suppress_stdio` 提取到 `clawdfolio.utils.suppress`（DRY 重构）
+- **动态版本管理** - CLI 版本号现从 `__version__` 动态读取，不再硬编码
+- **PEP 561 合规** - 新增 `py.typed` 标记文件，支持下游类型检查
+- **统一品牌命名** - 配置路径从 `portfolio-monitor` 迁移至 `clawdfolio`（保留向后兼容）；环境变量优先使用 `CLAWDFOLIO_CONFIG`
+- **仓库链接修复** - `pyproject.toml`、`README.md`、`README_CN.md` 中的所有链接已更新为正确的 GitHub 仓库地址
+- **结构化日志** - 核心模块中用 Python `logging` 模块替换了裸 `print` 调试输出
+- **改进 NaN 处理** - 用显式 `math.isnan` 替换了 `num == num` 的惯用写法
+- **Ticker 标准化辅助函数** - 集中化 `_yf_symbol()` 以消除分散的 `ticker.replace(".", "-")` 调用
 
 ---
 
@@ -233,8 +248,8 @@ MIT License - 查看 [LICENSE](LICENSE)
 
 ## 链接
 
-- [GitHub 仓库](https://github.com/2165187809-AXE/clawdfolio)
-- [问题反馈](https://github.com/2165187809-AXE/clawdfolio/issues)
+- [GitHub 仓库](https://github.com/YichengYang-Ethan/clawdfolio)
+- [问题反馈](https://github.com/YichengYang-Ethan/clawdfolio/issues)
 - [Claude Code 兼容说明](https://github.com/anthropics/claude-code)
 
 ---

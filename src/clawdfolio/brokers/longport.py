@@ -2,40 +2,21 @@
 
 from __future__ import annotations
 
-import io
-import os
-from contextlib import contextmanager, redirect_stderr, redirect_stdout
+import logging
 from datetime import datetime
 from decimal import Decimal
 from typing import TYPE_CHECKING, Any
 
 from ..core.exceptions import BrokerError
 from ..core.types import Exchange, Portfolio, Position, Quote, Symbol
+from ..utils.suppress import suppress_stdio
 from .base import BaseBroker
 from .registry import register_broker
 
 if TYPE_CHECKING:
     from ..core.config import BrokerConfig
 
-
-@contextmanager
-def _suppress_stdio():
-    """Suppress stdout/stderr from native SDK."""
-    devnull = os.open(os.devnull, os.O_WRONLY)
-    saved_out = os.dup(1)
-    saved_err = os.dup(2)
-    try:
-        os.dup2(devnull, 1)
-        os.dup2(devnull, 2)
-        yield
-    finally:
-        try:
-            os.dup2(saved_out, 1)
-            os.dup2(saved_err, 2)
-        finally:
-            os.close(saved_out)
-            os.close(saved_err)
-            os.close(devnull)
+logger = logging.getLogger(__name__)
 
 
 def _is_option_symbol(sym: str) -> bool:
@@ -67,16 +48,15 @@ class LongportBroker(BaseBroker):
     def connect(self) -> bool:
         """Connect to Longport API."""
         try:
-            _null = io.StringIO()
-            with _suppress_stdio():
-                with redirect_stdout(_null), redirect_stderr(_null):
-                    from longport.openapi import Config, QuoteContext, TradeContext
+            with suppress_stdio():
+                from longport.openapi import Config, QuoteContext, TradeContext
 
-                    self._cfg = Config.from_env()
-                    self._trade_ctx = TradeContext(self._cfg)
-                    self._quote_ctx = QuoteContext(self._cfg)
+                self._cfg = Config.from_env()
+                self._trade_ctx = TradeContext(self._cfg)
+                self._quote_ctx = QuoteContext(self._cfg)
 
             self._connected = True
+            logger.info("Connected to Longport API")
             return True
         except Exception as e:
             raise BrokerError("longport", f"Connection failed: {e}") from e
@@ -99,10 +79,8 @@ class LongportBroker(BaseBroker):
         positions = self.get_positions()
 
         # Get account balance
-        _null = io.StringIO()
-        with _suppress_stdio():
-            with redirect_stdout(_null), redirect_stderr(_null):
-                acc = self._trade_ctx.account_balance("USD")[0]
+        with suppress_stdio():
+            acc = self._trade_ctx.account_balance("USD")[0]
 
         net_assets = Decimal(str(acc.net_assets))
         cash = Decimal(str(acc.total_cash))
@@ -195,10 +173,8 @@ class LongportBroker(BaseBroker):
         syms = [f"{s.ticker}.US" for s in symbols]
 
         try:
-            _null = io.StringIO()
-            with _suppress_stdio():
-                with redirect_stdout(_null), redirect_stderr(_null):
-                    quotes = self._quote_ctx.quote(syms)
+            with suppress_stdio():
+                quotes = self._quote_ctx.quote(syms)
 
             for q in quotes:
                 ticker = q.symbol.replace(".US", "")

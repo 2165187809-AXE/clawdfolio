@@ -1,10 +1,10 @@
-"""Custom exceptions for Portfolio Monitor."""
+"""Custom exceptions for Clawdfolio."""
 
 from __future__ import annotations
 
 
 class PortfolioMonitorError(Exception):
-    """Base exception for all Portfolio Monitor errors."""
+    """Base exception for all Clawdfolio errors."""
 
     pass
 
