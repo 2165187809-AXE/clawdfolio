@@ -1,8 +1,8 @@
 # Clawdfolio 🦙📊 - 推广材料
 
 ## 项目链接
-- **GitHub**: https://github.com/2165187809-AXE/clawdfolio
-- **Release**: https://github.com/2165187809-AXE/clawdfolio/releases/tag/v1.0.0
+- **GitHub**: https://github.com/YichengYang-Ethan/clawdfolio
+- **Release**: https://github.com/YichengYang-Ethan/clawdfolio/releases/tag/v1.0.0
 
 ---
 
@@ -18,7 +18,7 @@
 
 Just say: /clawdfolio summary
 
-⭐ https://github.com/2165187809-AXE/clawdfolio
+⭐ https://github.com/YichengYang-Ethan/clawdfolio
 
 @AnthropicAI #ClaudeCode #OpenSource #Trading #Python #FinTech
 ```
@@ -37,7 +37,7 @@ Just say: /clawdfolio summary
 
 直接说：/clawdfolio summary
 
-⭐ https://github.com/2165187809-AXE/clawdfolio
+⭐ https://github.com/YichengYang-Ethan/clawdfolio
 
 #ClaudeCode #开源 #量化投资 #Python #金融科技
 ```
@@ -65,7 +65,7 @@ Hey everyone! Just released Clawdfolio - an open-source Claude Code Skill for mo
 **How to use:**
 Just tell Claude Code: `/clawdfolio summary` or `/clawdfolio risk`
 
-GitHub: https://github.com/2165187809-AXE/clawdfolio
+GitHub: https://github.com/YichengYang-Ethan/clawdfolio
 
 Would love your feedback! ⭐
 
@@ -91,7 +91,7 @@ Built a Python library for portfolio monitoring that integrates with Claude Code
 
 **Unique:** Talk to your portfolio in natural language through Claude Code!
 
-GitHub: https://github.com/2165187809-AXE/clawdfolio
+GitHub: https://github.com/YichengYang-Ethan/clawdfolio
 
 Contributions welcome!
 ```
@@ -114,7 +114,7 @@ Key features:
 
 Just tell Claude: "/clawdfolio risk" and get a full risk analysis of your portfolio.
 
-GitHub: https://github.com/2165187809-AXE/clawdfolio
+GitHub: https://github.com/YichengYang-Ethan/clawdfolio
 
 Tech: Python, pandas, yfinance. MIT licensed.
 
@@ -151,7 +151,7 @@ The name is unique on GitHub - search "clawdfolio" and you'll find it immediatel
 - `/clawdfolio alerts` - 查看警报
 
 ### 链接
-GitHub: https://github.com/2165187809-AXE/clawdfolio
+GitHub: https://github.com/YichengYang-Ethan/clawdfolio
 
 GitHub 搜索 "clawdfolio" 直接就能找到（全网唯一）！
 
@@ -216,7 +216,7 @@ Clawdfolio = Claude + Portfolio
 
 ## 开源地址
 
-GitHub: https://github.com/2165187809-AXE/clawdfolio
+GitHub: https://github.com/YichengYang-Ethan/clawdfolio
 
 这个名字是全网唯一的，直接搜索 "clawdfolio" 就能找到！
 
@@ -247,7 +247,7 @@ Managing portfolios across multiple brokers while tracking institutional-grade r
 
 The name "Clawdfolio" combines "Claude" and "Portfolio" - and it's the only project with this name on GitHub, making it easy to find!
 
-🔗 GitHub: https://github.com/2165187809-AXE/clawdfolio
+🔗 GitHub: https://github.com/YichengYang-Ethan/clawdfolio
 
 I'd love to hear your feedback. If you find it useful, a ⭐ star on GitHub would be greatly appreciated!
 
@@ -278,7 +278,7 @@ I'd love to hear your feedback. If you find it useful, a ⭐ star on GitHub woul
 
 项目名 "Clawdfolio" = Claude + Portfolio，在 GitHub 上是唯一的，搜索直达！
 
-🔗 GitHub: https://github.com/2165187809-AXE/clawdfolio
+🔗 GitHub: https://github.com/YichengYang-Ethan/clawdfolio
 
 欢迎试用和反馈，如果觉得有用，请给个 ⭐ Star 支持！
 

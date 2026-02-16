@@ -1,18 +1,19 @@
 ---
 name: clawdfolio
-version: 2.1.0
-description: AI-powered portfolio monitoring for Clawdbot - Multi-broker support with professional risk analytics, option strategy playbook, and finance workflows
+version: 2.2.0
+description: Quantitative portfolio toolkit — multi-broker aggregation, risk analytics, options strategy, and finance workflows. Native Clawdbot skill.
 author: YICHENG YANG
 license: MIT
 keywords:
-  - clawdbot
-  - claude-code-compatible
-  - ai
+  - quantitative-finance
+  - portfolio-analytics
+  - risk-management
+  - options-trading
   - finance
   - portfolio
   - trading
-  - risk-analysis
-  - investment
+  - clawdbot
+  - claude-code-compatible
 dependencies:
   - pandas>=2.0.0
   - numpy>=1.24.0
@@ -28,8 +29,7 @@ optional_dependencies:
 
 # Clawdfolio 🦙📊
 
-AI-powered portfolio monitoring for professional investors in the Clawdbot ecosystem.
-Supports multiple brokers including Longport (Longbridge) and Moomoo/Futu.
+Quantitative portfolio toolkit for professional investors. Multi-broker aggregation (Longport, Moomoo/Futu), institutional risk analytics, options strategy lifecycle management, and 20+ automated finance workflows. Also available as a native Clawdbot skill.
 
 ## Features
 

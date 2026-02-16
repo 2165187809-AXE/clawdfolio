@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "clawdfolio"
 version = "2.2.0"
-description = "AI-powered portfolio monitoring for Clawdbot with v2 finance workflows, option analytics, and a battle-tested options strategy playbook"
+description = "Production-grade quantitative portfolio toolkit — multi-broker aggregation, institutional risk analytics, options lifecycle management, and 20+ automated finance workflows"
 readme = "README.md"
 license = "MIT"
 requires-python = ">=3.10"
@@ -13,21 +13,23 @@ authors = [
     { name = "YICHENG YANG" }
 ]
 keywords = [
-    "clawdbot",
-    "claude-code-compatible",
-    "ai",
+    "quantitative-finance",
+    "portfolio-analytics",
+    "risk-management",
+    "options-trading",
+    "options-greeks",
+    "sharpe-ratio",
+    "var",
     "finance",
     "portfolio",
     "trading",
-    "risk-analysis",
     "investment",
-    "stocks",
-    "options",
-    "greeks",
     "broker",
     "longport",
     "moomoo",
     "futu",
+    "clawdbot",
+    "claude-code-compatible",
 ]
 classifiers = [
     "Development Status :: 4 - Beta",

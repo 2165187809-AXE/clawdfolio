@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Basic usage example for Portfolio Monitor."""
+"""Basic usage example for Clawdfolio."""
 
 from clawdfolio import load_config
 from clawdfolio.brokers import get_broker

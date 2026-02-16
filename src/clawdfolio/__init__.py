@@ -1,4 +1,4 @@
-"""Clawdfolio - AI portfolio monitoring for Clawdbot with v2 finance workflows and production-grade reliability."""
+"""Clawdfolio — quantitative portfolio toolkit with multi-broker aggregation, risk analytics, and options strategy management."""
 
 __version__ = "2.2.0"
 __author__ = "YICHENG YANG"
