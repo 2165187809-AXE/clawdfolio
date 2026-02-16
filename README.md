@@ -63,6 +63,28 @@ clawdfolio earnings                    # Upcoming earnings calendar
 clawdfolio dca AAPL                    # DCA analysis
 ```
 
+<details>
+<summary><strong>Example Output: <code>clawdfolio summary</code></strong></summary>
+
+```
+╔══════════════════════════════════════════════════════════╗
+║                  Portfolio Summary                       ║
+╠══════════════════════════════════════════════════════════╣
+║  Net Assets:     $41,863.57    Day Change:   +$327.42   ║
+║  Total P&L:      +$6,847.23   Return:       +19.55%    ║
+║  Positions:      15            Brokers:      2          ║
+╠══════════════════════════════════════════════════════════╣
+║  Top Holdings                                            ║
+║  TQQQ     $11,058.00   26.4%   +32.1%                  ║
+║  NVDA      $5,280.00   12.6%   +45.2%                  ║
+║  AAPL      $4,125.00    9.9%   +12.8%                  ║
+║  MSFT      $3,840.00    9.2%   +15.6%                  ║
+║  QQQ       $3,520.00    8.4%   +22.3%                  ║
+╚══════════════════════════════════════════════════════════╝
+```
+
+</details>
+
 ### Options Commands
 
 ```bash
