@@ -20,6 +20,7 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
+          cache: pip
 
       - name: Install dependencies
         run: pip install -e ".[dev]"
@@ -38,6 +39,7 @@ jobs:
         uses: codecov/codecov-action@v5
         with:
           file: ./coverage.xml
+          fail_ci_if_error: false
 
   build:
     needs: test

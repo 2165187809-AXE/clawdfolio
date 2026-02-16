@@ -5,7 +5,9 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [2.2.0] - 2025-02-14
+## [Unreleased]
+
+## [2.2.0] - 2026-02-14
 
 ### Added
 
@@ -30,7 +32,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - All repository URLs in `pyproject.toml`, `README.md`, and `README_CN.md` corrected from `2165187809-AXE/clawdfolio` to `YichengYang-Ethan/clawdfolio`.
 - Removed unused `import io` side-effect in `brokers/longport.py` (kept only where actually needed).
 
-## [2.1.0] - 2025-01-28
+## [2.1.0] - 2026-01-28
 
 ### Added
 
@@ -39,7 +41,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Explicit gamma-risk, margin, leverage, roll, assignment, and pause-condition decision rules.
 - Feature mapping connecting strategy decisions to `clawdfolio options` and `clawdfolio finance` workflows.
 
-## [2.0.0] - 2025-01-15
+## [2.0.0] - 2026-01-15
 
 ### Added
 
@@ -49,3 +51,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Mutable workspace bootstrap (`~/.clawdfolio/finance`).
 - Wilder RSI smoothing, Longport symbol fix, yfinance hardening.
 - Options quote/chain/buyback monitor.
+
+[Unreleased]: https://github.com/YichengYang-Ethan/clawdfolio/compare/v2.2.0...HEAD
+[2.2.0]: https://github.com/YichengYang-Ethan/clawdfolio/compare/v2.1.0...v2.2.0
+[2.1.0]: https://github.com/YichengYang-Ethan/clawdfolio/compare/v2.0.0...v2.1.0
+[2.0.0]: https://github.com/YichengYang-Ethan/clawdfolio/releases/tag/v2.0.0
