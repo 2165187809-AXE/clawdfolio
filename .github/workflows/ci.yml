@@ -37,7 +37,7 @@ jobs:
       - name: Security audit
         run: |
           pip install pip-audit
-          pip-audit --strict --desc
+          pip-audit --strict --desc --skip-editable
 
       - name: Upload coverage
         if: matrix.python-version == '3.11'
