@@ -2,6 +2,8 @@
 
 from decimal import Decimal
 
+import pytest
+
 from clawdfolio.core.config import Config, load_config
 from clawdfolio.core.exceptions import (
     BrokerError,
@@ -179,6 +181,40 @@ class TestConfig:
         back = config.to_dict()
         assert back["option_buyback"]["enabled"] is True
         assert back["option_buyback"]["targets"][0]["type"] == "C"
+
+
+class TestConfigValidation:
+    """Tests for config input validation."""
+
+    def test_rsi_low_out_of_range(self):
+        """Test that rsi_low outside 1-100 raises ConfigError."""
+        from clawdfolio.core.exceptions import ConfigError
+        with pytest.raises(ConfigError, match="rsi_low"):
+            Config.from_dict({"alerts": {"rsi_low": 0}})
+
+    def test_rsi_high_out_of_range(self):
+        """Test that rsi_high outside 1-100 raises ConfigError."""
+        from clawdfolio.core.exceptions import ConfigError
+        with pytest.raises(ConfigError, match="rsi_high"):
+            Config.from_dict({"alerts": {"rsi_high": 101}})
+
+    def test_rsi_low_ge_rsi_high(self):
+        """Test that rsi_low >= rsi_high raises ConfigError."""
+        from clawdfolio.core.exceptions import ConfigError
+        with pytest.raises(ConfigError, match="rsi_low"):
+            Config.from_dict({"alerts": {"rsi_low": 80, "rsi_high": 80}})
+
+    def test_negative_pnl_trigger(self):
+        """Test that negative pnl_trigger raises ConfigError."""
+        from clawdfolio.core.exceptions import ConfigError
+        with pytest.raises(ConfigError, match="pnl_trigger"):
+            Config.from_dict({"alerts": {"pnl_trigger": -100}})
+
+    def test_zero_pnl_trigger(self):
+        """Test that zero pnl_trigger raises ConfigError."""
+        from clawdfolio.core.exceptions import ConfigError
+        with pytest.raises(ConfigError, match="pnl_trigger"):
+            Config.from_dict({"alerts": {"pnl_trigger": 0}})
 
 
 class TestExceptions:

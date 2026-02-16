@@ -127,6 +127,9 @@ class FutuBroker(BaseBroker):
         if ret != RET_OK:
             raise BrokerError("futu", f"Failed to fetch account info: {funds}")
 
+        if funds.empty:
+            raise BrokerError("futu", "No account balance data returned")
+
         row = funds.iloc[0]
         net_assets = Decimal(str(row.get("total_assets", 0)))
         cash = Decimal(str(row.get("cash", 0)))

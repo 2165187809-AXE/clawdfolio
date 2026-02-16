@@ -149,6 +149,18 @@ class Config:
             ),
         )
 
+        # Validate alert config
+        if not (1 <= alerts.rsi_low <= 100):
+            raise ConfigError(f"rsi_low must be between 1 and 100, got {alerts.rsi_low}")
+        if not (1 <= alerts.rsi_high <= 100):
+            raise ConfigError(f"rsi_high must be between 1 and 100, got {alerts.rsi_high}")
+        if alerts.rsi_low >= alerts.rsi_high:
+            raise ConfigError(
+                f"rsi_low ({alerts.rsi_low}) must be less than rsi_high ({alerts.rsi_high})"
+            )
+        if alerts.pnl_trigger <= 0:
+            raise ConfigError(f"pnl_trigger must be positive, got {alerts.pnl_trigger}")
+
         return cls(
             brokers=brokers,
             alerts=alerts,

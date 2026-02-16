@@ -244,18 +244,54 @@ def create_parser() -> argparse.ArgumentParser:
     return parser
 
 
-def cmd_summary(args: Namespace) -> int:
-    """Handle summary command."""
+def _get_portfolio(args: Namespace):
+    """Get portfolio from the selected broker(s)."""
     from ..brokers import get_broker
     from ..brokers.demo import DemoBroker  # noqa: F401 - registers broker
+
+    if args.broker == "all":
+        from ..brokers.aggregator import aggregate_portfolios
+        from ..core.config import load_config
+
+        # Import broker modules to register them
+        try:
+            from ..brokers.futu import FutuBroker  # noqa: F401
+        except ImportError:
+            pass
+        try:
+            from ..brokers.longport import LongportBroker  # noqa: F401
+        except ImportError:
+            pass
+
+        config = load_config(getattr(args, "config", None))
+        brokers = []
+        for name, bcfg in config.brokers.items():
+            if not bcfg.enabled or name == "demo":
+                continue
+            try:
+                brokers.append(get_broker(name, bcfg))
+            except KeyError:
+                pass
+
+        if not brokers:
+            # Fall back to demo if no real brokers configured
+            broker = get_broker("demo")
+            broker.connect()
+            return broker.get_portfolio()
+
+        return aggregate_portfolios(brokers)
+
+    broker = get_broker(args.broker)
+    broker.connect()
+    return broker.get_portfolio()
+
+
+def cmd_summary(args: Namespace) -> int:
+    """Handle summary command."""
     from ..output import print_portfolio
 
-    broker_name = args.broker if args.broker != "all" else "demo"
-
     try:
-        broker = get_broker(broker_name)
-        broker.connect()
-        portfolio = broker.get_portfolio()
+        portfolio = _get_portfolio(args)
 
         if args.output == "json":
             from ..output.json import JSONFormatter
@@ -301,16 +337,10 @@ def cmd_quotes(args: Namespace) -> int:
 def cmd_risk(args: Namespace) -> int:
     """Handle risk command."""
     from ..analysis.risk import analyze_risk
-    from ..brokers import get_broker
-    from ..brokers.demo import DemoBroker  # noqa: F401
     from ..output import print_risk_metrics
 
-    broker_name = args.broker if args.broker != "all" else "demo"
-
     try:
-        broker = get_broker(broker_name)
-        broker.connect()
-        portfolio = broker.get_portfolio()
+        portfolio = _get_portfolio(args)
         metrics = analyze_risk(portfolio)
 
         if args.output == "json":
@@ -320,29 +350,68 @@ def cmd_risk(args: Namespace) -> int:
         else:
             print_risk_metrics(metrics)
 
+            if args.detailed:
+                _print_detailed_risk(portfolio, metrics)
+
         return 0
     except Exception as e:
         print(f"Error: {e}", file=sys.stderr)
         return 1
 
 
+def _print_detailed_risk(portfolio, metrics) -> None:
+    """Print additional detailed risk info: correlation, sectors, RSI, concentration."""
+    from ..analysis.concentration import analyze_concentration
+    from ..analysis.technical import detect_rsi_extremes
+
+    tickers = [p.symbol.ticker for p in portfolio.positions]
+
+    # RSI extremes
+    rsi_results = detect_rsi_extremes(tickers, overbought=70, oversold=30)
+    if rsi_results:
+        print("\nRSI Extremes:")
+        print("-" * 40)
+        for r in rsi_results:
+            label = "OVERBOUGHT" if r.is_overbought else "OVERSOLD"
+            print(f"  {r.ticker:8} RSI={r.rsi:5.1f}  [{label}]")
+
+    # Concentration
+    conc = analyze_concentration(portfolio)
+    if conc:
+        cm = conc.get("metrics")
+        if cm:
+            print(f"\nConcentration: HHI={cm.hhi:.3f}  "
+                  f"Top-5={cm.top_5_weight*100:.1f}%  "
+                  f"Max={cm.max_position_ticker} {cm.max_position_weight*100:.1f}%")
+        score = conc.get("diversification_score")
+        if score is not None:
+            print(f"Diversification Score: {score}/100")
+        sectors = conc.get("sectors", [])
+        if sectors:
+            print("\nSector Exposure:")
+            for s in sectors[:5]:
+                print(f"  {s.sector or 'Unknown':20} {s.weight*100:5.1f}%  ({len(s.tickers)} positions)")
+
+    # Portfolio RSI
+    if metrics.rsi_portfolio is not None:
+        print(f"\nPortfolio RSI (14d): {metrics.rsi_portfolio:.1f}")
+
+
 def cmd_alerts(args: Namespace) -> int:
     """Handle alerts command."""
-    from ..brokers import get_broker
-    from ..brokers.demo import DemoBroker  # noqa: F401
+    from ..core.config import load_config
     from ..monitors.earnings import EarningsMonitor
     from ..monitors.price import PriceMonitor
 
-    broker_name = args.broker if args.broker != "all" else "demo"
-
     try:
-        broker = get_broker(broker_name)
-        broker.connect()
-        portfolio = broker.get_portfolio()
+        portfolio = _get_portfolio(args)
+        config = load_config(getattr(args, "config", None))
 
         # Collect alerts
         all_alerts = []
-        all_alerts.extend(PriceMonitor().check_portfolio(portfolio))
+        monitor = PriceMonitor.from_config(config)
+        monitor.leveraged_etfs = config.leveraged_etfs
+        all_alerts.extend(monitor.check_portfolio(portfolio))
         all_alerts.extend(EarningsMonitor().check_portfolio(portfolio))
 
         # Filter by severity if specified
@@ -354,7 +423,10 @@ def cmd_alerts(args: Namespace) -> int:
             formatter = JSONFormatter()
             print(formatter.format_alerts(all_alerts))
         else:
-            if not all_alerts:
+            from ..output.console import RICH_AVAILABLE, ConsoleFormatter
+            if RICH_AVAILABLE:
+                ConsoleFormatter().print_alerts(all_alerts)
+            elif not all_alerts:
                 print("No alerts")
             else:
                 for alert in all_alerts:
@@ -369,16 +441,10 @@ def cmd_alerts(args: Namespace) -> int:
 
 def cmd_earnings(args: Namespace) -> int:
     """Handle earnings command."""
-    from ..brokers import get_broker
-    from ..brokers.demo import DemoBroker  # noqa: F401
     from ..monitors.earnings import format_earnings_calendar, get_upcoming_earnings
 
-    broker_name = args.broker if args.broker != "all" else "demo"
-
     try:
-        broker = get_broker(broker_name)
-        broker.connect()
-        portfolio = broker.get_portfolio()
+        portfolio = _get_portfolio(args)
         events = get_upcoming_earnings(portfolio, days_ahead=args.days)
 
         if args.output == "json":
@@ -674,8 +740,16 @@ def cmd_finance(args: Namespace) -> int:
 
 def main(argv: list[str] | None = None) -> int:
     """Main entry point."""
+    from ..core.config import load_config
+    from ..market.data import set_default_ttl
+
     parser = create_parser()
     args, extras = parser.parse_known_args(argv)
+
+    # Apply cache_ttl from config
+    config = load_config(getattr(args, "config", None))
+    if config.cache_ttl:
+        set_default_ttl(config.cache_ttl)
 
     if extras:
         if args.command == "finance" and args.finance_command == "run":

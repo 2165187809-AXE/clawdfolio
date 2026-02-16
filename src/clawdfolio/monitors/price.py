@@ -2,14 +2,20 @@
 
 from __future__ import annotations
 
+import json
+import math
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING
+from pathlib import Path
+from typing import TYPE_CHECKING, Any
 
 from ..core.types import Alert, AlertSeverity, AlertType
 
 if TYPE_CHECKING:
     from ..core.config import Config
     from ..core.types import Portfolio
+
+
+DEFAULT_STATE_PATH = "~/.cache/clawdfolio/price_alert_state.json"
 
 
 @dataclass
@@ -25,15 +31,32 @@ class PriceAlert:
 
 @dataclass
 class PriceMonitor:
-    """Monitor for price movement alerts."""
+    """Monitor for price movement alerts.
+
+    Supports step-based deduplication: an alert fires when a threshold is
+    first crossed, then only fires again when the value crosses the next
+    step boundary (e.g. every additional ``move_step`` of change, or
+    every additional ``pnl_step`` of dollar P&L).
+    """
 
     # Thresholds
     top10_threshold: float = 0.05  # 5% for top 10
     other_threshold: float = 0.10  # 10% for others
     pnl_trigger: float = 500.0  # Absolute P&L trigger
 
-    # State for deduplication
-    last_alerts: dict[str, dict] = field(default_factory=dict)
+    # Step sizes for deduplication
+    move_step: float = 0.01  # 1% step for price moves
+    pnl_step: float = 500.0  # $500 step for P&L
+    rsi_step: int = 2  # RSI step (not used here, kept for config parity)
+
+    # Leveraged ETF mappings: ticker -> (underlying, leverage, label)
+    leveraged_etfs: dict[str, tuple[str, int, str]] = field(default_factory=dict)
+
+    # State file path for deduplication
+    state_path: str = DEFAULT_STATE_PATH
+
+    # In-memory state (loaded from/saved to state_path)
+    _state: dict[str, Any] = field(default_factory=dict, repr=False)
 
     @classmethod
     def from_config(cls, config: Config) -> PriceMonitor:
@@ -42,10 +65,93 @@ class PriceMonitor:
             top10_threshold=config.alerts.single_stock_threshold_top10,
             other_threshold=config.alerts.single_stock_threshold_other,
             pnl_trigger=config.alerts.pnl_trigger,
+            move_step=config.alerts.move_step,
+            pnl_step=config.alerts.pnl_step,
+            rsi_step=config.alerts.rsi_step,
+            leveraged_etfs=config.leveraged_etfs,
         )
+
+    def _load_state(self) -> dict[str, Any]:
+        """Load deduplication state from disk."""
+        path = Path(self.state_path).expanduser()
+        if path.exists():
+            try:
+                return json.loads(path.read_text(encoding="utf-8"))
+            except Exception:
+                return {}
+        return {}
+
+    def _save_state(self, state: dict[str, Any]) -> None:
+        """Save deduplication state to disk."""
+        path = Path(self.state_path).expanduser()
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(json.dumps(state, indent=2), encoding="utf-8")
+
+    def _should_alert_price(self, ticker: str, day_pct: float, threshold: float) -> bool:
+        """Check if a price alert should fire based on step deduplication.
+
+        Fires on first threshold crossing, then only when crossing the
+        next ``move_step`` boundary.
+        """
+        if self.move_step <= 0:
+            return True
+
+        key = f"price:{ticker}"
+        last_step = self._state.get(key)
+
+        # Current step number (how many steps above threshold)
+        steps_above = math.floor((abs(day_pct) - threshold) / self.move_step)
+        current_step = max(0, steps_above)
+
+        if last_step is None:
+            # First time crossing threshold
+            self._state[key] = current_step
+            return True
+
+        if current_step > last_step:
+            # Crossed a new step boundary
+            self._state[key] = current_step
+            return True
+
+        return False
+
+    def _should_alert_pnl(self, pnl: float) -> bool:
+        """Check if a P&L alert should fire based on step deduplication."""
+        if self.pnl_step <= 0:
+            return True
+
+        key = "pnl:portfolio"
+        last_step = self._state.get(key)
+
+        current_step = math.floor(abs(pnl) / self.pnl_step)
+
+        if last_step is None:
+            self._state[key] = current_step
+            return True
+
+        if current_step > last_step:
+            self._state[key] = current_step
+            return True
+
+        return False
+
+    def _effective_threshold(self, ticker: str, base_threshold: float) -> float:
+        """Get effective alert threshold, adjusting for leveraged ETFs.
+
+        For a 3x leveraged ETF with a 5% threshold, the effective
+        threshold becomes 5% * 3 = 15% (the ETF is expected to move 3x
+        as much as the underlying).
+        """
+        if ticker in self.leveraged_etfs:
+            _underlying, leverage, _label = self.leveraged_etfs[ticker]
+            return base_threshold * abs(leverage)
+        return base_threshold
 
     def check_portfolio(self, portfolio: Portfolio) -> list[Alert]:
         """Check portfolio for price alerts.
+
+        Uses step-based deduplication: alerts only fire when crossing a
+        new step boundary rather than every time the monitor runs.
 
         Args:
             portfolio: Portfolio to check
@@ -53,48 +159,68 @@ class PriceMonitor:
         Returns:
             List of triggered alerts
         """
-        alerts = []
+        self._state = self._load_state()
+        alerts: list[Alert] = []
 
         # Sort positions by weight
         sorted_positions = portfolio.sorted_by_weight
 
         for i, pos in enumerate(sorted_positions, start=1):
-            threshold = self.top10_threshold if i <= 10 else self.other_threshold
+            base_threshold = self.top10_threshold if i <= 10 else self.other_threshold
+            threshold = self._effective_threshold(pos.symbol.ticker, base_threshold)
             day_pct = pos.day_pnl_pct
 
             if abs(day_pct) >= threshold:
+                if not self._should_alert_price(pos.symbol.ticker, day_pct, threshold):
+                    continue
+
                 severity = AlertSeverity.WARNING
                 if abs(day_pct) >= threshold * 2:
                     severity = AlertSeverity.CRITICAL
 
                 direction = "up" if day_pct > 0 else "down"
+                etf_note = ""
+                if pos.symbol.ticker in self.leveraged_etfs:
+                    _u, lev, label = self.leveraged_etfs[pos.symbol.ticker]
+                    etf_note = f" ({lev}x {label})"
+
                 alerts.append(Alert(
                     type=AlertType.PRICE_MOVE,
                     severity=severity,
-                    title=f"{pos.symbol.ticker} {direction} {abs(day_pct)*100:.1f}%",
+                    title=f"{pos.symbol.ticker}{etf_note} {direction} {abs(day_pct)*100:.1f}%",
                     message=self._format_price_message(pos, i),
                     ticker=pos.symbol.ticker,
                     value=day_pct,
                     threshold=threshold,
                     metadata={"rank": i, "weight": pos.weight},
                 ))
+            else:
+                # Below threshold — clear any saved state so it can re-fire
+                key = f"price:{pos.symbol.ticker}"
+                self._state.pop(key, None)
 
         # Check total P&L
-        if abs(float(portfolio.day_pnl)) >= self.pnl_trigger:
-            is_gain = portfolio.day_pnl > 0
-            severity = AlertSeverity.WARNING
-            if abs(float(portfolio.day_pnl)) >= self.pnl_trigger * 2:
-                severity = AlertSeverity.CRITICAL
+        pnl_val = float(portfolio.day_pnl)
+        if abs(pnl_val) >= self.pnl_trigger:
+            if self._should_alert_pnl(pnl_val):
+                is_gain = portfolio.day_pnl > 0
+                severity = AlertSeverity.WARNING
+                if abs(pnl_val) >= self.pnl_trigger * 2:
+                    severity = AlertSeverity.CRITICAL
 
-            alerts.append(Alert(
-                type=AlertType.PNL_THRESHOLD,
-                severity=severity,
-                title=f"Portfolio {'gained' if is_gain else 'lost'} ${abs(portfolio.day_pnl):,.0f} today",
-                message=self._format_pnl_message(portfolio, is_gain),
-                value=float(portfolio.day_pnl),
-                threshold=self.pnl_trigger,
-            ))
+                alerts.append(Alert(
+                    type=AlertType.PNL_THRESHOLD,
+                    severity=severity,
+                    title=f"Portfolio {'gained' if is_gain else 'lost'} ${abs(portfolio.day_pnl):,.0f} today",
+                    message=self._format_pnl_message(portfolio, is_gain),
+                    value=pnl_val,
+                    threshold=self.pnl_trigger,
+                ))
+        else:
+            # Below trigger — clear saved state
+            self._state.pop("pnl:portfolio", None)
 
+        self._save_state(self._state)
         return alerts
 
     def _format_price_message(self, pos, rank: int) -> str:

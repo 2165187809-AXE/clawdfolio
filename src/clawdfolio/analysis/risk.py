@@ -9,6 +9,7 @@ from typing import TYPE_CHECKING
 import numpy as np
 import pandas as pd
 
+from ..analysis.technical import calculate_rsi
 from ..core.types import RiskMetrics
 from ..market.data import get_history, get_history_multi, risk_free_rate
 
@@ -265,6 +266,8 @@ def analyze_risk(portfolio: Portfolio) -> RiskMetrics:
 
     ticker_weights = {t: w for t, w in zip(tickers, weights, strict=False) if t in available_tickers}
     w = np.array([ticker_weights[t] for t in available_tickers])
+    if w.sum() == 0:
+        return metrics
     w = w / w.sum()  # Renormalize
 
     port_returns = (returns[available_tickers] * w).sum(axis=1)
@@ -303,6 +306,9 @@ def analyze_risk(portfolio: Portfolio) -> RiskMetrics:
     # Max Drawdown (using portfolio value proxy)
     port_value = (1 + port_returns).cumprod()
     metrics.max_drawdown, metrics.current_drawdown = calculate_max_drawdown(port_value)
+
+    # Portfolio-level RSI
+    metrics.rsi_portfolio = calculate_rsi(port_value.values.tolist(), period=14)
 
     # Correlation analysis
     if len(available_tickers) >= 2:

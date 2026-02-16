@@ -196,6 +196,62 @@ class TestTechnicalIndicators:
         assert 0 <= bands.percent_b <= 1 or bands.percent_b < 0 or bands.percent_b > 1
 
 
+    def test_calculate_beta_insufficient_data(self):
+        """Test beta with insufficient data returns None."""
+        asset = np.random.normal(0, 0.01, 10)
+        bench = np.random.normal(0, 0.01, 10)
+        assert calculate_beta(asset, bench) is None
+
+    def test_calculate_var_insufficient_data(self):
+        """Test VaR with insufficient data returns zeros."""
+        returns = [0.01, 0.02]
+        var_pct, var_amt = calculate_var(returns)
+        assert var_pct == 0.0
+        assert var_amt is None
+
+    def test_zero_weight_portfolio(self):
+        """Test that zero-weight portfolio doesn't crash (ZeroDivisionError fix)."""
+        from decimal import Decimal
+        from unittest.mock import patch
+
+        from clawdfolio.analysis.risk import analyze_risk
+        from clawdfolio.core.types import Exchange, Portfolio, Position, Symbol
+
+        pos = Position(
+            symbol=Symbol(ticker="AAPL", exchange=Exchange.NYSE),
+            quantity=Decimal("100"),
+            avg_cost=Decimal("150.00"),
+            market_value=Decimal("17550.00"),
+            day_pnl=Decimal("0"),
+            day_pnl_pct=0.0,
+            current_price=Decimal("175.50"),
+            source="test",
+        )
+        pos.weight = 0.0
+        positions = [pos]
+        portfolio = Portfolio(
+            positions=positions,
+            cash=Decimal("10000.00"),
+            net_assets=Decimal("27550.00"),
+            market_value=Decimal("17550.00"),
+            buying_power=Decimal("10000.00"),
+            day_pnl=Decimal("0"),
+            day_pnl_pct=0.0,
+            currency="USD",
+            source="test",
+        )
+
+        # Mock get_history_multi to return data so we reach the weight normalization code
+        mock_prices = pd.DataFrame(
+            {"AAPL": np.random.normal(100, 1, 50)},
+            index=pd.date_range("2025-01-01", periods=50),
+        )
+        with patch("clawdfolio.analysis.risk.get_history_multi", return_value=mock_prices):
+            metrics = analyze_risk(portfolio)
+        # Should return metrics without crashing
+        assert metrics is not None
+
+
 class TestConcentration:
     """Tests for concentration analysis."""
 

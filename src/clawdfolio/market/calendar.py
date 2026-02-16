@@ -47,7 +47,20 @@ US_HOLIDAYS_2026 = {
     date(2026, 12, 25), # Christmas
 }
 
-US_HOLIDAYS = US_HOLIDAYS_2024 | US_HOLIDAYS_2025 | US_HOLIDAYS_2026
+US_HOLIDAYS_2027 = {
+    date(2027, 1, 1),   # New Year's Day
+    date(2027, 1, 18),  # MLK Day
+    date(2027, 2, 15),  # Presidents Day
+    date(2027, 3, 26),  # Good Friday
+    date(2027, 5, 31),  # Memorial Day
+    date(2027, 6, 18),  # Juneteenth (observed)
+    date(2027, 7, 5),   # Independence Day (observed)
+    date(2027, 9, 6),   # Labor Day
+    date(2027, 11, 25), # Thanksgiving
+    date(2027, 12, 24), # Christmas (observed)
+}
+
+US_HOLIDAYS = US_HOLIDAYS_2024 | US_HOLIDAYS_2025 | US_HOLIDAYS_2026 | US_HOLIDAYS_2027
 
 
 def is_weekend(d: date) -> bool:

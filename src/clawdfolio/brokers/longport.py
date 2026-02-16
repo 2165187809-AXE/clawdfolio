@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import re
 from datetime import datetime
 from decimal import Decimal
 from typing import TYPE_CHECKING, Any
@@ -18,11 +19,13 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
+_OPTION_RE = re.compile(r"^[A-Z]{1,6}\d{6}[CP]\d+$")
+
 
 def _is_option_symbol(sym: str) -> bool:
-    """Check if a symbol looks like an option."""
+    """Check if a symbol looks like an OCC-format option (e.g. AAPL260618C00150000)."""
     base = sym.replace(".US", "")
-    return len(base) > 10 and any(c.isdigit() for c in base) and ("C" in base or "P" in base)
+    return bool(_OPTION_RE.match(base))
 
 
 @register_broker("longport")
@@ -80,8 +83,12 @@ class LongportBroker(BaseBroker):
 
         # Get account balance
         with suppress_stdio():
-            acc = self._trade_ctx.account_balance("USD")[0]
+            balances = self._trade_ctx.account_balance("USD")
 
+        if not balances:
+            raise BrokerError("longport", "No account balance data returned")
+
+        acc = balances[0]
         net_assets = Decimal(str(acc.net_assets))
         cash = Decimal(str(acc.total_cash))
         buying_power = Decimal(str(getattr(acc, "buy_power", 0) or 0))

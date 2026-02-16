@@ -84,6 +84,73 @@ class TestBrokerRegistry:
         unregister_broker("duplicate_test")
 
 
+class TestFutuEmptyData:
+    """Tests for futu broker empty data handling."""
+
+    def test_futu_empty_funds_raises_broker_error(self):
+        """Test that empty account balance DataFrame raises BrokerError."""
+        from unittest.mock import MagicMock, patch
+
+        import pandas as pd
+
+        from clawdfolio.core.exceptions import BrokerError
+
+        with patch.dict("sys.modules", {
+            "futu": MagicMock(),
+            "futu.common": MagicMock(),
+            "futu.common.ft_logger": MagicMock(),
+        }):
+            from clawdfolio.brokers.futu import FutuBroker
+            broker = FutuBroker()
+            broker._connected = True
+            broker._trade_ctx = MagicMock()
+            broker._quote_ctx = MagicMock()
+
+            # Mock RET_OK
+            futu_mod = MagicMock()
+            futu_mod.RET_OK = 0
+            futu_mod.Currency.USD = "USD"
+            futu_mod.TrdEnv.REAL = "REAL"
+
+            broker._trade_ctx.position_list_query.return_value = (0, pd.DataFrame())
+            broker._trade_ctx.accinfo_query.return_value = (0, pd.DataFrame())
+
+            with patch.dict("sys.modules", {"futu": futu_mod}):
+                with pytest.raises(BrokerError, match="No account balance data"):
+                    broker.get_portfolio()
+
+
+class TestLongportEmptyBalance:
+    """Tests for longport broker empty balance handling."""
+
+    def test_longport_empty_balance_raises_broker_error(self):
+        """Test that empty account balance list raises BrokerError."""
+        from unittest.mock import MagicMock, patch
+
+        from clawdfolio.core.exceptions import BrokerError
+
+        with patch.dict("sys.modules", {
+            "longport": MagicMock(),
+            "longport.openapi": MagicMock(),
+        }):
+            from clawdfolio.brokers.longport import LongportBroker
+            broker = LongportBroker()
+            broker._connected = True
+            broker._trade_ctx = MagicMock()
+            broker._quote_ctx = MagicMock()
+
+            # stock_positions returns empty channels
+            pos_result = MagicMock()
+            pos_result.channels = []
+            broker._trade_ctx.stock_positions.return_value = pos_result
+
+            # account_balance returns empty list
+            broker._trade_ctx.account_balance.return_value = []
+
+            with pytest.raises(BrokerError, match="No account balance data"):
+                broker.get_portfolio()
+
+
 class TestDemoBroker:
     """Tests for demo broker."""
 

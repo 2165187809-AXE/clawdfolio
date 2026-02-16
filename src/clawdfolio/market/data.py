@@ -36,14 +36,29 @@ def _import_yf():
 _cache: dict[str, tuple[float, Any]] = {}
 _cache_lock = threading.Lock()
 
+# Global TTL override — set via set_default_ttl() from config.cache_ttl
+_default_ttl: float | None = None
+
+
+def set_default_ttl(ttl: float) -> None:
+    """Set a global default TTL override for all cached calls.
+
+    When set, ``_cached()`` uses ``min(ttl, explicit_ttl)`` so that a
+    shorter config value can speed up cache rotation without allowing a
+    caller to accidentally extend it.
+    """
+    global _default_ttl
+    _default_ttl = ttl
+
 
 def _cached(key: str, ttl: float, fn):
     """Return cached value if within TTL, else call fn and cache."""
+    effective_ttl = min(ttl, _default_ttl) if _default_ttl is not None else ttl
     now = time.time()
     with _cache_lock:
         if key in _cache:
             ts, val = _cache[key]
-            if now - ts < ttl:
+            if now - ts < effective_ttl:
                 return val
     val = fn()
     with _cache_lock:
@@ -103,6 +118,7 @@ def get_history(ticker: str, period: str = "1y") -> pd.DataFrame:
             # Handle MultiIndex columns from yfinance (e.g., ('Close', 'AAPL'))
             if isinstance(df.columns, pd.MultiIndex):
                 df.columns = df.columns.get_level_values(0)
+                df = df.loc[:, ~df.columns.duplicated()]
             return df
         except Exception:
             logger.debug("Failed to get history for %s", sym, exc_info=True)
@@ -152,10 +168,18 @@ def get_history_multi(tickers: list[str], period: str = "1y") -> pd.DataFrame:
 # ---------------------------------------------------------------------------
 
 def get_quote(ticker: str) -> Quote | None:
-    """Get a Quote object for a ticker."""
+    """Get a Quote object for a ticker. Cached 5 minutes."""
     yf = _import_yf()
     sym = _yf_symbol(ticker)
 
+    def _fetch():
+        return _get_quote_uncached(sym, ticker, yf)
+
+    return _cached(f"quote:{sym}", 300, _fetch)
+
+
+def _get_quote_uncached(sym: str, ticker: str, yf) -> Quote | None:
+    """Internal uncached quote fetch."""
     try:
         t = yf.Ticker(sym)
         info = t.info
@@ -612,15 +636,19 @@ def get_option_chain(ticker: str, expiry: str) -> OptionChainData | None:
 
 
 def get_option_expiries(ticker: str) -> list[str]:
-    """Get available option expiry dates for ticker."""
+    """Get available option expiry dates for ticker. Cached 1 hour."""
     yf = _import_yf()
     sym = _yf_symbol(ticker)
-    try:
-        expiries = yf.Ticker(sym).options
-        return list(expiries) if expiries else []
-    except Exception:
-        logger.debug("Failed to get option expiries for %s", sym, exc_info=True)
-        return []
+
+    def _fetch():
+        try:
+            expiries = yf.Ticker(sym).options
+            return list(expiries) if expiries else []
+        except Exception:
+            logger.debug("Failed to get option expiries for %s", sym, exc_info=True)
+            return []
+
+    return _cached(f"opt_exp:{sym}", 3600, _fetch)
 
 
 # ---------------------------------------------------------------------------
