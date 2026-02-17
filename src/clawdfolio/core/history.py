@@ -152,7 +152,7 @@ def compute_performance(rows: list[SnapshotRow]) -> dict:
 def format_performance_table(perf: dict) -> str:
     """Format performance dict as a human-readable table."""
     if "error" in perf:
-        return perf["error"]
+        return str(perf["error"])
 
     lines = [
         "Portfolio Performance",

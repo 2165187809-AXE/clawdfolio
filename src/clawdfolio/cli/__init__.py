@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 
-def create_parser():
+def create_parser():  # type: ignore[no-untyped-def]
     """Lazily import parser factory to avoid runpy module warnings."""
     from .main import create_parser as _create_parser
 

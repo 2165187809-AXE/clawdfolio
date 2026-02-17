@@ -5,7 +5,7 @@ from __future__ import annotations
 import argparse
 import logging
 import sys
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from .. import __version__
 
@@ -324,7 +324,7 @@ def create_parser() -> argparse.ArgumentParser:
     return parser
 
 
-def _get_portfolio(args: Namespace):
+def _get_portfolio(args: Namespace):  # type: ignore[no-untyped-def]
     """Get portfolio from the selected broker(s)."""
     from ..brokers import get_broker
     from ..brokers.demo import DemoBroker  # noqa: F401 - registers broker
@@ -439,7 +439,7 @@ def cmd_risk(args: Namespace) -> int:
         return 1
 
 
-def _print_detailed_risk(portfolio, metrics) -> None:
+def _print_detailed_risk(portfolio: Any, metrics: Any) -> None:
     """Print additional detailed risk info: correlation, sectors, RSI, concentration."""
     from ..analysis.concentration import analyze_concentration
     from ..analysis.technical import detect_rsi_extremes
@@ -524,7 +524,7 @@ def cmd_alerts(args: Namespace) -> int:
         return 1
 
 
-def _send_alert_notifications(args, config, alerts, method: str) -> None:
+def _send_alert_notifications(args: Any, config: Any, alerts: Any, method: str) -> None:
     """Send alert notifications via the specified method."""
     from ..notifications import send_notification
 

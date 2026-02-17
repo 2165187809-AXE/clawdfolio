@@ -76,7 +76,8 @@ class PriceMonitor:
         path = Path(self.state_path).expanduser()
         if path.exists():
             try:
-                return json.loads(path.read_text(encoding="utf-8"))
+                result: dict[str, Any] = json.loads(path.read_text(encoding="utf-8"))
+                return result
             except Exception:
                 return {}
         return {}
@@ -223,7 +224,7 @@ class PriceMonitor:
         self._save_state(self._state)
         return alerts
 
-    def _format_price_message(self, pos, rank: int) -> str:
+    def _format_price_message(self, pos: Any, rank: int) -> str:
         """Format price alert message."""
         direction = "up" if pos.day_pnl_pct > 0 else "down"
         return (

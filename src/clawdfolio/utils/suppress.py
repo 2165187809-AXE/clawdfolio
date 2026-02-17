@@ -3,11 +3,12 @@
 from __future__ import annotations
 
 import os
+from collections.abc import Generator
 from contextlib import contextmanager
 
 
 @contextmanager
-def suppress_stdio():
+def suppress_stdio() -> Generator[None, None, None]:
     """Suppress stdout/stderr from native SDKs.
 
     Some broker SDKs (Longport, Futu) emit noisy log output to the

@@ -60,7 +60,7 @@ class Symbol:
     exchange: Exchange = Exchange.UNKNOWN
     name: str = ""
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         # Normalize ticker (remove exchange suffix if present)
         if "." in self.ticker:
             parts = self.ticker.rsplit(".", 1)
@@ -144,7 +144,7 @@ class Position:
         return self._weight
 
     @weight.setter
-    def weight(self, value: float):
+    def weight(self, value: float) -> None:
         self._weight = value
 
     def update_from_quote(self, quote: Quote) -> None:
@@ -180,7 +180,7 @@ class Portfolio:
     source: str = ""
     timestamp: datetime | None = None
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         self._update_weights()
         self._ticker_index = {p.symbol.ticker: p for p in self.positions}
 

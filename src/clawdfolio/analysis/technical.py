@@ -267,7 +267,7 @@ def is_golden_cross(
     slow_ma_prev = np.mean(prices_arr[-(slow + 1):-1])
     slow_ma_curr = np.mean(prices_arr[-slow:])
 
-    return fast_ma_prev <= slow_ma_prev and fast_ma_curr > slow_ma_curr
+    return bool(fast_ma_prev <= slow_ma_prev and fast_ma_curr > slow_ma_curr)
 
 
 def is_death_cross(
@@ -294,4 +294,4 @@ def is_death_cross(
     slow_ma_prev = np.mean(prices_arr[-(slow + 1):-1])
     slow_ma_curr = np.mean(prices_arr[-slow:])
 
-    return fast_ma_prev >= slow_ma_prev and fast_ma_curr < slow_ma_curr
+    return bool(fast_ma_prev >= slow_ma_prev and fast_ma_curr < slow_ma_curr)

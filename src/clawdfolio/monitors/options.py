@@ -97,7 +97,7 @@ def _contract_key(target: OptionBuybackTargetConfig) -> tuple[str, float, str]:
     return target.expiry, float(target.strike), target.option_type.upper()
 
 
-def _snapshot_from_quote(target: OptionBuybackTargetConfig, quote) -> OptionContractSnapshot:
+def _snapshot_from_quote(target: OptionBuybackTargetConfig, quote: Any) -> OptionContractSnapshot:
     if quote is None:
         return OptionContractSnapshot(
             expiry=target.expiry,
