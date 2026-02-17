@@ -191,6 +191,7 @@ def analyze_concentration(
         "sectors": sectors,
         "alerts": alerts,
         "is_concentrated": len(alerts) > 0,
+        "diversification_score": diversification_score(portfolio),
     }
 
 
