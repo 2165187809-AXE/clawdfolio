@@ -1,6 +1,6 @@
 # Legacy Finance Scripts (v2 Migration)
 
-This directory bundles the local production finance workflows migrated from `~/clawd/scripts`.
+Legacy finance scripts migrated from a personal automation system.
 
 ## Layout
 

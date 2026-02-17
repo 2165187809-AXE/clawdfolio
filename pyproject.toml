@@ -28,8 +28,6 @@ keywords = [
     "longport",
     "moomoo",
     "futu",
-    "clawdbot",
-    "claude-code-compatible",
 ]
 classifiers = [
     "Development Status :: 4 - Beta",

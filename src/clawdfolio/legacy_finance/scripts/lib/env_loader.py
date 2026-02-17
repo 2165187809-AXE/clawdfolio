@@ -1,6 +1,6 @@
 """Environment loading helpers.
 
-Clawdbot often runs scripts via cron/daemon, which won't source ~/.zshrc.
+Scripts may run via cron/daemon, which won't source ~/.zshrc.
 We keep broker API credentials in a local, git-ignored file: data/longport_env.sh
 ("export KEY=..." lines).
 

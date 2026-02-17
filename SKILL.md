@@ -27,7 +27,6 @@ keywords:
   - options-trading
   - finance
   - dca
-  - clawdbot
 dependencies:
   - pandas>=2.0.0
   - numpy>=1.24.0

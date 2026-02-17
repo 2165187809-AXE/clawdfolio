@@ -2,7 +2,7 @@
 
 ## 项目链接
 - **GitHub**: https://github.com/YichengYang-Ethan/clawdfolio
-- **Release**: https://github.com/YichengYang-Ethan/clawdfolio/releases/tag/v1.0.0
+- **Release**: https://github.com/YichengYang-Ethan/clawdfolio/releases/tag/v2.3.0
 
 ---
 
