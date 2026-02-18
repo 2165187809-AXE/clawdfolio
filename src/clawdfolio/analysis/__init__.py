@@ -4,8 +4,10 @@ from .concentration import (
     analyze_concentration,
     calculate_concentration,
     calculate_hhi,
+    effective_n,
     get_sector_exposure,
 )
+from .factors import FactorExposure, analyze_factor_exposure, download_ff_factors
 from .risk import (
     analyze_risk,
     calculate_beta,
@@ -14,6 +16,7 @@ from .risk import (
     calculate_var,
     calculate_volatility,
 )
+from .stress import SCENARIOS, StressResult, stress_test_portfolio
 from .technical import (
     calculate_bollinger_bands,
     calculate_ema,
@@ -21,6 +24,7 @@ from .technical import (
     calculate_sma,
     detect_rsi_extremes,
 )
+from .volatility import compare_vol_estimates, forecast_volatility
 
 __all__ = [
     # Risk
@@ -41,4 +45,16 @@ __all__ = [
     "calculate_concentration",
     "get_sector_exposure",
     "analyze_concentration",
+    "effective_n",
+    # Volatility
+    "forecast_volatility",
+    "compare_vol_estimates",
+    # Factors
+    "FactorExposure",
+    "analyze_factor_exposure",
+    "download_ff_factors",
+    # Stress
+    "SCENARIOS",
+    "StressResult",
+    "stress_test_portfolio",
 ]

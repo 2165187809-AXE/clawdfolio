@@ -122,6 +122,9 @@ class ConsoleFormatter:
         if metrics.volatility_annualized is not None:
             table.add_row("Volatility (Ann.)", f"{metrics.volatility_annualized*100:.1f}%")
 
+        if metrics.garch_vol_forecast is not None:
+            table.add_row("GARCH Vol Forecast", f"{metrics.garch_vol_forecast*100:.1f}%")
+
         if metrics.beta_spy is not None:
             table.add_row("Beta (SPY)", f"{metrics.beta_spy:.2f}")
 

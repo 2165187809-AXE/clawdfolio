@@ -252,6 +252,9 @@ class RiskMetrics:
     max_drawdown: float | None = None
     current_drawdown: float | None = None
 
+    # GARCH volatility
+    garch_vol_forecast: float | None = None
+
     timestamp: datetime | None = None
 
 

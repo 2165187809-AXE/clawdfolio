@@ -191,41 +191,22 @@ def analyze_concentration(
         "sectors": sectors,
         "alerts": alerts,
         "is_concentrated": len(alerts) > 0,
-        "diversification_score": diversification_score(portfolio),
+        "effective_n": effective_n([p.weight for p in portfolio.positions]),
+        "n_positions": len(portfolio.positions),
     }
 
 
-def diversification_score(portfolio: Portfolio) -> float:
-    """Calculate a diversification score (0-100).
+def effective_n(weights: list[float]) -> float:
+    """Effective number of positions = 1 / HHI.
 
-    Higher score = better diversified.
+    A portfolio equally split among N positions has effective_n = N.
+    Concentration reduces this below the actual number of positions.
 
     Args:
-        portfolio: Portfolio object
+        weights: List of position weights (should sum to ~1)
 
     Returns:
-        Diversification score
+        Effective number of independent positions
     """
-    if not portfolio.positions or len(portfolio.positions) < 2:
-        return 0.0
-
-    metrics = calculate_concentration(portfolio)
-    sectors = get_sector_exposure(portfolio)
-
-    # Base score from HHI (inverted)
-    hhi_score = (1 - metrics.hhi) * 40  # Max 40 points
-
-    # Position count score
-    n_positions = len(portfolio.positions)
-    position_score = min(n_positions / 20, 1.0) * 20  # Max 20 points for 20+ positions
-
-    # Sector diversity score
-    n_sectors = len([s for s in sectors if s.weight > 0.01])
-    sector_score = min(n_sectors / 8, 1.0) * 20  # Max 20 points for 8+ sectors
-
-    # Max position penalty
-    max_pos_score = (1 - metrics.max_position_weight) * 20  # Max 20 points
-
-    total = hhi_score + position_score + sector_score + max_pos_score
-
-    return min(max(total, 0), 100)
+    hhi = sum(w**2 for w in weights)
+    return 1.0 / hhi if hhi > 0 else 0.0

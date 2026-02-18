@@ -9,7 +9,7 @@ from clawdfolio.analysis.concentration import (
     analyze_concentration,
     calculate_concentration,
     calculate_hhi,
-    diversification_score,
+    effective_n,
     get_sector_exposure,
 )
 from clawdfolio.core.types import Exchange, Portfolio, Position, Symbol
@@ -147,31 +147,33 @@ class TestAnalyzeConcentration:
         assert len(result["alerts"]) == 0
 
 
-class TestDiversificationScore:
-    """Tests for diversification_score."""
+class TestEffectiveN:
+    """Tests for effective_n."""
+
+    def test_equal_weights(self):
+        weights = [0.25, 0.25, 0.25, 0.25]
+        assert abs(effective_n(weights) - 4.0) < 1e-9
+
+    def test_single_position(self):
+        assert abs(effective_n([1.0]) - 1.0) < 1e-9
+
+    def test_empty_weights(self):
+        assert effective_n([]) == 0.0
+
+    def test_concentrated(self):
+        result = effective_n([0.9, 0.1])
+        assert 1.0 < result < 2.0
+
+    def test_many_equal_weights(self):
+        n = 20
+        weights = [1.0 / n] * n
+        assert abs(effective_n(weights) - float(n)) < 1e-6
 
     @patch("clawdfolio.analysis.concentration.get_sector")
-    def test_single_position_returns_zero(self, mock_get_sector):
-        p = _make_portfolio([("AAPL", 1.0)])
-        assert diversification_score(p) == 0.0
-
-    @patch("clawdfolio.analysis.concentration.get_sector")
-    def test_empty_portfolio_returns_zero(self, mock_get_sector):
-        p = Portfolio(positions=[], net_assets=Decimal("0"), market_value=Decimal("0"))
-        assert diversification_score(p) == 0.0
-
-    @patch("clawdfolio.analysis.concentration.get_sector")
-    def test_diversified_higher_score(self, mock_get_sector):
-        mock_get_sector.side_effect = lambda t: f"Sector{t[-1]}"
-        weights = [(f"T{i}", 0.05) for i in range(20)]
-        p = _make_portfolio(weights)
-        score = diversification_score(p)
-        assert score > 50
-
-    @patch("clawdfolio.analysis.concentration.get_sector")
-    def test_score_capped_at_100(self, mock_get_sector):
-        mock_get_sector.side_effect = lambda t: f"Sector{t[-1]}"
-        weights = [(f"T{i}", 1 / 30) for i in range(30)]
-        p = _make_portfolio(weights)
-        score = diversification_score(p)
-        assert score <= 100
+    def test_analyze_concentration_has_effective_n(self, mock_get_sector):
+        mock_get_sector.return_value = "Tech"
+        p = _make_portfolio([("AAPL", 0.50), ("GOOG", 0.50)])
+        result = analyze_concentration(p)
+        assert "effective_n" in result
+        assert abs(result["effective_n"] - 2.0) < 1e-9
+        assert result["n_positions"] == 2

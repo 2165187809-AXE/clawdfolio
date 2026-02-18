@@ -232,6 +232,15 @@ def create_parser() -> argparse.ArgumentParser:
         help="Exit with code 1 if no target is triggered",
     )
 
+    # Factors command
+    subparsers.add_parser("factors", help="Fama-French factor exposure analysis")
+
+    # Stress command
+    subparsers.add_parser("stress", help="Leverage-adjusted stress testing")
+
+    # Greeks command
+    subparsers.add_parser("greeks", help="Aggregate portfolio-level Greeks")
+
     # Snapshot command
     snapshot_parser = subparsers.add_parser("snapshot", help="Save portfolio snapshot to history")
     snapshot_parser.add_argument(
@@ -455,6 +464,10 @@ def _print_detailed_risk(portfolio: Any, metrics: Any) -> None:
             label = "OVERBOUGHT" if r.is_overbought else "OVERSOLD"
             print(f"  {r.ticker:8} RSI={r.rsi:5.1f}  [{label}]")
 
+    # GARCH volatility
+    if metrics.garch_vol_forecast is not None:
+        print(f"\nGARCH(1,1) Vol Forecast: {metrics.garch_vol_forecast*100:.1f}%")
+
     # Concentration
     conc = analyze_concentration(portfolio)
     if conc:
@@ -463,9 +476,10 @@ def _print_detailed_risk(portfolio: Any, metrics: Any) -> None:
             print(f"\nConcentration: HHI={cm.hhi:.3f}  "
                   f"Top-5={cm.top_5_weight*100:.1f}%  "
                   f"Max={cm.max_position_ticker} {cm.max_position_weight*100:.1f}%")
-        score = conc.get("diversification_score")
-        if score is not None:
-            print(f"Diversification Score: {score}/100")
+        eff_n = conc.get("effective_n")
+        n_pos = conc.get("n_positions")
+        if eff_n is not None and n_pos is not None:
+            print(f"Effective N: {eff_n:.1f} (out of {n_pos} positions)")
         sectors = conc.get("sectors", [])
         if sectors:
             print("\nSector Exposure:")
@@ -925,6 +939,163 @@ def cmd_options(args: Namespace) -> int:
     return 1
 
 
+def cmd_factors(args: Namespace) -> int:
+    """Handle factors command — Fama-French factor exposure."""
+    from ..analysis.factors import analyze_factor_exposure
+    from ..market.data import get_history_multi
+
+    try:
+        portfolio = _get_portfolio(args)
+        if not portfolio.positions:
+            print("No positions in portfolio.")
+            return 1
+
+        tickers = [p.symbol.ticker for p in portfolio.positions]
+        weights = [p.weight for p in portfolio.positions]
+
+        prices = get_history_multi(tickers, period="1y")
+        if prices.empty:
+            print("Could not fetch price data.")
+            return 1
+
+        returns = prices.pct_change().dropna()
+        available = [t for t in tickers if t in returns.columns]
+        if not available:
+            print("No matching return data.")
+            return 1
+
+        import numpy as np
+
+        w = np.array([wt for t, wt in zip(tickers, weights, strict=False) if t in available])
+        if w.sum() == 0:
+            print("All weights are zero.")
+            return 1
+        w = w / w.sum()
+        port_returns = (returns[available] * w).sum(axis=1)
+
+        exposure = analyze_factor_exposure(port_returns, period="1y")
+
+        if args.output == "json":
+            from ..output.json import to_json
+            print(to_json({
+                "factor_loadings": exposure.factor_loadings,
+                "t_stats": exposure.t_stats,
+                "p_values": exposure.p_values,
+                "r_squared": exposure.r_squared,
+                "alpha_annualized": exposure.alpha_annualized,
+                "alpha_t_stat": exposure.alpha_t_stat,
+                "alpha_p_value": exposure.alpha_p_value,
+            }))
+        else:
+            print("\nFama-French 3-Factor Exposure")
+            print("=" * 55)
+            print(f"{'Factor':<10} {'Loading':>10} {'t-stat':>10} {'p-value':>10}")
+            print("-" * 55)
+            for factor in ["Mkt-RF", "SMB", "HML"]:
+                loading = exposure.factor_loadings.get(factor, 0.0)
+                t_stat = exposure.t_stats.get(factor, 0.0)
+                p_val = exposure.p_values.get(factor, 1.0)
+                sig = "*" if p_val < 0.05 else ""
+                print(f"{factor:<10} {loading:>10.4f} {t_stat:>10.2f} {p_val:>9.4f} {sig}")
+            print("-" * 55)
+            alpha_sig = "*" if exposure.alpha_p_value < 0.05 else ""
+            print(
+                f"{'Alpha':<10} {exposure.alpha_annualized:>9.4f}% "
+                f"{exposure.alpha_t_stat:>10.2f} {exposure.alpha_p_value:>9.4f} {alpha_sig}"
+            )
+            print(f"\nR-squared: {exposure.r_squared:.4f}")
+
+        return 0
+    except Exception as e:
+        print(f"Error: {e}", file=sys.stderr)
+        return 1
+
+
+def cmd_stress(args: Namespace) -> int:
+    """Handle stress command — leverage-adjusted stress testing."""
+    from ..analysis.stress import stress_test_portfolio
+
+    try:
+        portfolio = _get_portfolio(args)
+        if not portfolio.positions:
+            print("No positions in portfolio.")
+            return 1
+
+        results = stress_test_portfolio(portfolio)
+
+        if args.output == "json":
+            from ..output.json import to_json
+            data = [
+                {
+                    "scenario": r.scenario,
+                    "portfolio_impact": r.portfolio_impact,
+                    "position_impacts": r.position_impacts,
+                }
+                for r in results
+            ]
+            print(to_json(data))
+        else:
+            net_assets = float(portfolio.net_assets)
+            print("\nStress Test Results")
+            print("=" * 60)
+            for r in results:
+                pct = r.portfolio_impact * 100
+                loss_str = ""
+                if net_assets > 0:
+                    loss_str = f"  (${r.portfolio_impact * net_assets:,.0f})"
+                print(f"  {r.scenario:<30} {pct:>+7.2f}%{loss_str}")
+
+            # Show top 3 most impacted positions for worst scenario
+            worst = max(results, key=lambda r: abs(r.portfolio_impact))
+            print(f"\nWorst scenario: {worst.scenario}")
+            sorted_impacts = sorted(
+                worst.position_impacts, key=lambda x: abs(x["impact"]), reverse=True  # type: ignore[arg-type]
+            )
+            print("  Top impacted positions:")
+            for pi in sorted_impacts[:5]:
+                lev = f" ({pi['leverage']}x)" if pi["leverage"] != 1.0 else ""
+                print(
+                    f"    {pi['ticker']:8}{lev:8} "
+                    f"wt={float(pi['weight'])*100:5.1f}%  impact={float(pi['impact'])*100:>+6.2f}%"
+                )
+
+        return 0
+    except Exception as e:
+        print(f"Error: {e}", file=sys.stderr)
+        return 1
+
+
+def cmd_greeks(args: Namespace) -> int:
+    """Handle greeks command — aggregate portfolio-level Greeks."""
+    try:
+        portfolio = _get_portfolio(args)
+        option_positions = [p for p in portfolio.positions if p.is_option]
+
+        if not option_positions:
+            print("No option positions found in portfolio.")
+            return 0
+
+        print("\nPortfolio Greeks Aggregation")
+        print("=" * 60)
+
+        for pos in option_positions:
+            qty = float(pos.quantity)
+            ticker = pos.symbol.ticker
+            # For option positions, the greeks are per contract
+            # We'd need to fetch current greeks; for now, display what we have
+            print(f"  {ticker}: qty={qty:.0f}")
+
+        # Note: Full Greeks aggregation requires live option quotes per position.
+        # This is a summary placeholder that works with the current data model.
+        print("\nNote: Full Greeks aggregation requires live option quote data.")
+        print("Use 'clawdfolio options quote' to view Greeks for individual options.")
+
+        return 0
+    except Exception as e:
+        print(f"Error: {e}", file=sys.stderr)
+        return 1
+
+
 def cmd_finance(args: Namespace) -> int:
     """Handle finance workflow orchestration command."""
     from ..finance.runner import default_workspace_path, initialize_workspace, run_workflow
@@ -1049,6 +1220,9 @@ def main(argv: list[str] | None = None) -> int:
         "performance": cmd_performance,
         "compare": cmd_compare,
         "options": cmd_options,
+        "factors": cmd_factors,
+        "stress": cmd_stress,
+        "greeks": cmd_greeks,
         "finance": cmd_finance,
     }
 

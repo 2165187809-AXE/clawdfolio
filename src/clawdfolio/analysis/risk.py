@@ -360,6 +360,14 @@ def analyze_risk(portfolio: Portfolio) -> RiskMetrics:
     # Portfolio-level RSI
     metrics.rsi_portfolio = calculate_rsi(port_value.values.tolist(), period=14)
 
+    # GARCH volatility forecast
+    try:
+        from .volatility import forecast_volatility as _garch_forecast
+
+        metrics.garch_vol_forecast = _garch_forecast(port_returns)
+    except Exception:
+        pass
+
     # Correlation analysis
     if len(available_tickers) >= 2:
         corr_matrix = returns[available_tickers].corr()
