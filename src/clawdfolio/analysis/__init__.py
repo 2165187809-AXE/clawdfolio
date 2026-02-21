@@ -1,6 +1,13 @@
 """Portfolio analysis and risk metrics."""
 
-from .bubble import BubbleIndexResult, IndicatorResult, calculate_bubble_index
+from .bubble import (
+    BubbleIndexResult,
+    BubbleRiskResult,
+    IndicatorResult,
+    calculate_bubble_index,
+    calculate_bubble_risk,
+    fetch_bubble_risk,
+)
 from .concentration import (
     analyze_concentration,
     calculate_concentration,
@@ -28,6 +35,10 @@ from .technical import (
 from .volatility import compare_vol_estimates, forecast_volatility
 
 __all__ = [
+    # Bubble risk
+    "BubbleRiskResult",
+    "calculate_bubble_risk",
+    "fetch_bubble_risk",
     # Risk
     "calculate_volatility",
     "calculate_beta",
