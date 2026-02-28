@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Bubble Risk Score integration** — Real-time drawdown risk scoring (0-100) from [Market-Bubble-Index-Dashboard](https://github.com/YichengYang-Ethan/Market-Bubble-Index-Dashboard), with SMA-200 deviation, trend acceleration, and volatility regime components.
+- **Risk-driven Covered Call strategy** (`strategies/covered_call.py`) — Quantitative CC signal generation using Bubble Risk Score. Backtested over 11 years (2014-2026): Risk >= 66 threshold, 83% win rate, +3.0% annualized alpha, 1.5% assignment rate.
+- `BubbleRiskResult.should_sell_cc` and `BubbleRiskResult.cc_delta` convenience properties for quick decision-making.
+- `CoveredCallStrategy` class with configurable thresholds, delta targets, and DTE parameters.
+- `check_cc_signals()` and `get_cc_recommendation()` convenience functions.
+- `fetch_bubble_risk()` — Dashboard API integration with automatic fallback to live calculation.
+- Tests for covered call strategy (26 tests) and bubble risk score (21 tests), boosting coverage above 70%.
+
+### Fixed
+
+- Ruff lint errors in `analysis/bubble.py` (E402: module-level imports not at top) and `strategies/covered_call.py` (F401: unused import, UP035/UP045: modern type annotation style).
+
 ## [2.3.0] - 2026-02-16
 
 ### Added

@@ -28,12 +28,14 @@
 ## 功能特性
 
 - **多券商支持** — 长桥证券 (Longport)、富途牛牛 (Moomoo)、演示模式
-- **风险分析** — 波动率、Beta、夏普比率、VaR、最大回撤
+- **风险分析** — 波动率、Beta、夏普比率、VaR、最大回撤、GARCH 预测
+- **泡沫风险评分** — 基于 [Market-Bubble-Index-Dashboard](https://github.com/YichengYang-Ethan/Market-Bubble-Index-Dashboard) 的实时市场泡沫检测，融合 SMA 偏离、趋势加速和波动率体制分析
+- **风险驱动 Covered Call 策略** — 11 年回测验证 (2014-2026)：仅在风险评分 >= 66 时卖出 CC，实现 **83% 胜率**和 **+3.0% 年化超额收益**
 - **技术指标** — RSI、SMA、EMA、布林带
 - **集中度分析** — HHI 指数、行业暴露、相关性警告
+- **压力测试** — 5 个历史场景（COVID 崩盘、2022 熊市等），支持杠杆 ETF 放大效应
 - **智能警报** — 价格异动、RSI 超买超卖、盈亏阈值
 - **财报日历** — 追踪持仓股票财报日期
-- **定投分析** — DCA 信号与绩效追踪
 - **期权工具集** — 期权报价/Greeks、期权链快照、回补触发监控
 - **期权策略手册 (v2.1)** — 覆盖式卖出看涨与裸卖看跌的完整生命周期管理，含 Delta/Gamma/保证金风控规则
 - **金融工作流套件** — 20 个来自实盘交易的生产工作流，覆盖报告、警报、行情和券商快照
@@ -94,12 +96,69 @@ print(f"VaR 95%: ${metrics.var_95:,.2f}")
 
 | 指标 | 说明 |
 |------|------|
-| **波动率** | 20 日和 60 日年化波动率 |
+| **波动率** | 20 日和 60 日年化波动率，GARCH(1,1) 预测 |
 | **Beta** | 与 SPY/QQQ 的相关性 |
 | **夏普比率** | 风险调整后收益 |
-| **VaR** | 在险价值 (95%/99%) |
+| **索提诺比率** | 仅计入下行波动的风险调整收益 |
+| **VaR / CVaR** | 在险价值 (95%/99%) + 预期损失 |
 | **最大回撤** | 最大峰值到谷值跌幅 |
 | **HHI** | 投资组合集中度指数 |
+| **压力测试** | COVID-19、2022 熊市、闪崩等历史场景 |
+
+---
+
+## 泡沫风险评分
+
+集成自 [Market-Bubble-Index-Dashboard](https://github.com/YichengYang-Ethan/Market-Bubble-Index-Dashboard) — 实时复合市场风险指标。
+
+**三大评分维度：**
+- **SMA-200 偏离** (0-40 分) — 市场价格相对 200 日均线的偏离程度
+- **趋势加速** (0-30 分) — 多项式拟合衡量抛物线式价格加速
+- **波动率体制** (0-30 分) — 年化已实现波动率评估
+
+| 评分 | 体制 | 操作建议 |
+|------|------|----------|
+| 0-39 | 低风险 | 持有股票，不卖 CC |
+| 40-54 | 中等 | 监控观察 |
+| 55-65 | 升高 | 准备 CC 订单 |
+| 66-100 | 高风险 | 执行 Covered Call |
+
+```python
+from clawdfolio.analysis.bubble import fetch_bubble_risk
+
+risk = fetch_bubble_risk()  # 从 Dashboard API 获取（不可用时自动回退本地计算）
+print(f"风险评分: {risk.drawdown_risk_score:.1f} ({risk.regime})")
+print(f"是否应卖 CC: {risk.should_sell_cc}")
+print(f"建议 Delta: {risk.cc_delta}")
+```
+
+---
+
+## 风险驱动 Covered Call 策略
+
+基于泡沫风险评分的量化 CC 策略，用于决定**何时**卖出看涨期权和**什么** Delta。专为杠杆 ETF (TQQQ) 或宽基 ETF (QQQ/SPY) 长期持有者设计。
+
+**11 年回测结果 (2014-2026, 64 种参数组合)：**
+
+| 指标 | 数值 |
+|------|------|
+| 最优阈值 | 风险评分 >= 66 (历史 P85) |
+| 最优 Delta | 0.25 |
+| 胜率 | **83%** |
+| 年化超额收益 | **+3.0%** (相对买入并持有) |
+| 被行权率 | 1.5% (11 年仅 1 次) |
+| 信号类型 | 非对称 — 仅适用于 sell-call |
+
+```python
+from clawdfolio.strategies.covered_call import CoveredCallStrategy
+
+strategy = CoveredCallStrategy(tickers=["TQQQ"])
+signals = strategy.check_signals()
+
+for sig in signals:
+    print(f"{sig.ticker}: {sig.action.value} δ={sig.target_delta} "
+          f"风险={sig.bubble_risk_score:.0f} ({sig.regime})")
+```
 
 ---
 
@@ -197,7 +256,24 @@ clawdfolio finance run <workflow_id>   # 执行工作流
 <details>
 <summary><strong>更新日志</strong></summary>
 
-### v2.2.0 (2025-02-14)
+### v2.4.0 (2026-02-28)
+
+- **泡沫风险评分** — 集成 Market-Bubble-Index-Dashboard 的实时回撤风险评分 (0-100)
+- **风险驱动 Covered Call 策略** — 量化 CC 信号：83% 胜率，+3.0% 超额收益（11 年回测）
+- `CoveredCallStrategy`、`check_cc_signals()`、`get_cc_recommendation()` 便捷 API
+- `fetch_bubble_risk()` 支持 Dashboard API + 本地实时计算回退
+- 泡沫风险和 CC 策略模块的全面测试覆盖
+
+### v2.3.0 (2026-02-16)
+
+- Sortino 比率和 CVaR/预期损失风险指标
+- `analyze_risk()` 输出中新增 Portfolio RSI
+- `clawdfolio export` CLI 命令（CSV/JSON）
+- 动态美股交易日历（算法化节假日生成）
+- 批量 SPY/QQQ 基准获取
+- 覆盖率提升至 70%，Python 3.13 CI 支持
+
+### v2.2.0 (2026-02-14)
 
 - 线程安全市场数据缓存（`threading.Lock`）
 - 批量报价获取，通过 `yf.download` 并支持逐个回退

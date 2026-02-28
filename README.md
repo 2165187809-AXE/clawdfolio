@@ -28,12 +28,14 @@ English | [中文](README_CN.md)
 ## Features
 
 - **Multi-Broker Support** — Longport (Longbridge), Moomoo/Futu, or demo mode
-- **Risk Analytics** — Volatility, Beta, Sharpe Ratio, Value at Risk, Max Drawdown
+- **Risk Analytics** — Volatility, Beta, Sharpe Ratio, Value at Risk, Max Drawdown, GARCH forecasting
+- **Bubble Risk Score** — Real-time market bubble detection powered by [Market-Bubble-Index-Dashboard](https://github.com/YichengYang-Ethan/Market-Bubble-Index-Dashboard), with SMA deviation, trend acceleration, and volatility regime analysis
+- **Risk-Driven Covered Call Strategy** — Backtested over 11 years (2014-2026): sell CC only when Risk Score >= 66, achieving **83% win rate** and **+3.0% annualized alpha** over buy-and-hold
 - **Technical Analysis** — RSI, SMA, EMA, Bollinger Bands
 - **Concentration Analysis** — HHI index, sector exposure, correlation warnings
+- **Stress Testing** — 5 historical scenarios (COVID crash, 2022 bear market, etc.) with leveraged ETF awareness
 - **Smart Alerts** — Price movements, RSI extremes, P&L thresholds
 - **Earnings Calendar** — Track upcoming earnings for holdings
-- **DCA Analysis** — Dollar-cost averaging signals
 - **Options Toolkit** — Option quote/Greeks, option chain snapshot, buyback trigger monitor
 - **Options Strategy Playbook (v2.1)** — Covered Call and Sell Put lifecycle management with delta/gamma/margin guardrails
 - **Finance Workflow Suite** — 20 production workflows for reports, alerts, market intel, and broker snapshots
@@ -116,12 +118,92 @@ print(f"VaR 95%: ${metrics.var_95:,.2f}")
 
 | Metric | Description |
 |--------|-------------|
-| **Volatility** | 20-day and 60-day annualized |
+| **Volatility** | 20-day and 60-day annualized, GARCH(1,1) forecast |
 | **Beta** | Correlation with SPY/QQQ |
 | **Sharpe Ratio** | Risk-adjusted returns |
-| **VaR** | Value at Risk (95%/99%) |
+| **Sortino Ratio** | Downside-only risk-adjusted returns |
+| **VaR / CVaR** | Value at Risk (95%/99%) + Expected Shortfall |
 | **Max Drawdown** | Largest peak-to-trough decline |
 | **HHI** | Portfolio concentration index |
+| **Stress Testing** | COVID-19, 2022 bear, flash crash scenarios |
+
+---
+
+## Bubble Risk Score
+
+Integrated from [Market-Bubble-Index-Dashboard](https://github.com/YichengYang-Ethan/Market-Bubble-Index-Dashboard) — a real-time composite market risk indicator.
+
+**Components:**
+- **SMA-200 Deviation** (0-40 pts) — How far the market has stretched above its 200-day moving average
+- **Trend Acceleration** (0-30 pts) — Polynomial-fit measure of parabolic price acceleration
+- **Volatility Regime** (0-30 pts) — Annualized realized volatility assessment
+
+**Regime Classification:**
+
+| Score | Regime | Action |
+|-------|--------|--------|
+| 0-39 | Low Risk | Hold shares, no CC |
+| 40-54 | Moderate | Monitor |
+| 55-65 | Elevated | Prepare CC orders |
+| 66-100 | High Risk | Sell covered calls |
+
+```python
+from clawdfolio.analysis.bubble import fetch_bubble_risk
+
+risk = fetch_bubble_risk()  # from Dashboard API (with live-calc fallback)
+print(f"Risk Score: {risk.drawdown_risk_score:.1f} ({risk.regime})")
+print(f"Should sell CC: {risk.should_sell_cc}")
+print(f"Recommended delta: {risk.cc_delta}")
+```
+
+---
+
+## Risk-Driven Covered Call Strategy
+
+A quantitative covered call strategy that uses the Bubble Risk Score to determine **when** to sell calls and at **what delta**. Designed for long-term holders of leveraged ETFs (TQQQ) or broad-market ETFs (QQQ/SPY).
+
+**Backtested Results (2014-2026, 64 parameter combinations):**
+
+| Metric | Value |
+|--------|-------|
+| Optimal threshold | Risk Score >= 66 (P85 historical) |
+| Optimal delta | 0.25 |
+| Win rate | **83%** |
+| Annualized alpha | **+3.0%** over buy-and-hold |
+| Assignment rate | 1.5% (1 in 11 years) |
+| Signal type | Asymmetric — sell-call only |
+
+```python
+from clawdfolio.strategies.covered_call import CoveredCallStrategy
+
+strategy = CoveredCallStrategy(tickers=["TQQQ"])
+signals = strategy.check_signals()
+
+for sig in signals:
+    print(f"{sig.ticker}: {sig.action.value} δ={sig.target_delta} "
+          f"Risk={sig.bubble_risk_score:.0f} ({sig.regime})")
+
+# Or get a quick one-liner:
+from clawdfolio.strategies.covered_call import get_cc_recommendation
+print(get_cc_recommendation("TQQQ"))
+```
+
+<details>
+<summary><strong>Example Signal Dashboard Output</strong></summary>
+
+```
+━━━ Covered Call Signal Dashboard ━━━
+
+  TQQQ
+    Risk Score: 72.5 (high_risk)
+    Action:     sell_call
+    🔶 Risk signal active (72 ≥ 66) — sell CC at δ=0.25
+    Target:     δ=0.25, DTE=35
+    Mgmt:       PT=50%, SL=200%, Roll@14DTE
+    Strength:   33%
+```
+
+</details>
 
 ---
 
@@ -218,6 +300,14 @@ clawdfolio finance run <workflow_id>   # Execute a workflow
 
 <details>
 <summary><strong>Changelog</strong></summary>
+
+### v2.4.0 (2026-02-28)
+
+- **Bubble Risk Score** — Real-time drawdown risk scoring (0-100) integrated from Market-Bubble-Index-Dashboard
+- **Risk-driven Covered Call strategy** — Quantitative CC signals: 83% win rate, +3.0% alpha (11-year backtest)
+- `CoveredCallStrategy`, `check_cc_signals()`, `get_cc_recommendation()` convenience API
+- `fetch_bubble_risk()` with Dashboard API + live-calc fallback
+- Comprehensive test coverage for bubble risk and covered call modules
 
 ### v2.3.0 (2026-02-16)
 
